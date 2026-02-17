@@ -12,7 +12,7 @@
                             <group string="Data Siswa">
                                 <field name="name"/> <!-- New direct name field -->
                                 <field name="class_name"/>
-                                <field name="school_origin"/>
+                                <field name="sekolah_id"/>
                                 <field name="status"/>
                                 <field name="join_date"/>
                             </group>
@@ -63,7 +63,7 @@
                 <tree string="Profil Siswa">
                     <field name="name"/> <!-- New direct name field -->
                     <field name="class_name"/>
-                    <field name="school_origin"/>
+                    <field name="sekolah_id"/>
                     <field name="level_id"/>
                     <field name="class_type_id"/>
                     <field name="jadwal_hari"/>
@@ -83,7 +83,7 @@
                 <search string="Cari Siswa">
                     <field name="name" string="Nama Siswa"/>
                     <field name="parent_id" string="Nama Orang Tua"/>
-                    <field name="school_origin"/>
+                    <field name="sekolah_id"/>
                     <field name="class_type_id"/>
                     <field name="level_id"/>
                     <separator/>
