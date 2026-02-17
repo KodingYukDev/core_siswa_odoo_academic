@@ -22,34 +22,10 @@ class StudentProfile(models.Model):
     )
     sekolah_id = fields.Many2one('m.sekolah', string='Asal Sekolah', tracking=True)
 
-    # --- Penagihan Cerdas ---
-    partner_invoice_id = fields.Many2one(
-        'res.partner',
-        string='Partner Penagihan',
-        compute='_compute_partner_invoice_id',
-        store=True,
-        readonly=True,
-        help="Partner yang akan ditagih. Akan otomatis menjadi sekolah jika siswa adalah ekskul di sekolah partner, jika tidak maka akan ke penanggung jawab siswa."
-    )
-
-    @api.depends('tipe_siswa', 'sekolah_id', 'sekolah_id.status_kerjasama', 'parent_id')
-    def _compute_partner_invoice_id(self):
-        for student in self:
-            is_ekskul = student.tipe_siswa == 'ekskul'
-            school_is_partner = student.sekolah_id and student.sekolah_id.status_kerjasama == 'partner'
-
-            if is_ekskul and school_is_partner:
-                # Jika ekskul di sekolah partner, tagih institusi sekolahnya
-                student.partner_invoice_id = student.sekolah_id.parent_id
-            else:
-                # Jika tidak, tagih penanggung jawab siswa
-                student.partner_invoice_id = student.parent_id
-
     # --- Data Siswa ---
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
 
     class_name = fields.Char(string='Kelas', help="Contoh: 2 SD, TK B")
-    school_origin = fields.Char(string='Asal Sekolah')
     
     # Relasi ke Master Tingkat
     level_id = fields.Many2one(
