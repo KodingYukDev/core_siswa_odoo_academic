@@ -24,6 +24,7 @@ class StudentProfile(models.Model):
 
     # --- Data Siswa ---
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
+    nis = fields.Char(string='NIS', tracking=True)
 
     class_name = fields.Char(string='Kelas', help="Contoh: 2 SD, TK B")
     
