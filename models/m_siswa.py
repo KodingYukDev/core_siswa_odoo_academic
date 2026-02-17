@@ -7,6 +7,44 @@ class StudentProfile(models.Model):
     # Tambahkan chatter di bawah (log histori)
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+    # --- Relasi dan Tipe Siswa ---
+    tipe_siswa = fields.Selection(
+        [
+            ('privat', 'Privat'),
+            ('online', 'Online'),
+            ('reguler', 'Reguler'),
+            ('ekskul', 'Ekstrakurikuler'),
+        ],
+        string='Tipe Siswa',
+        default='privat',
+        required=True,
+        tracking=True
+    )
+    sekolah_id = fields.Many2one('m.sekolah', string='Asal Sekolah', tracking=True)
+
+    # --- Penagihan Cerdas ---
+    partner_invoice_id = fields.Many2one(
+        'res.partner',
+        string='Partner Penagihan',
+        compute='_compute_partner_invoice_id',
+        store=True,
+        readonly=True,
+        help="Partner yang akan ditagih. Akan otomatis menjadi sekolah jika siswa adalah ekskul di sekolah partner, jika tidak maka akan ke penanggung jawab siswa."
+    )
+
+    @api.depends('tipe_siswa', 'sekolah_id', 'sekolah_id.status_kerjasama', 'parent_id')
+    def _compute_partner_invoice_id(self):
+        for student in self:
+            is_ekskul = student.tipe_siswa == 'ekskul'
+            school_is_partner = student.sekolah_id and student.sekolah_id.status_kerjasama == 'partner'
+
+            if is_ekskul and school_is_partner:
+                # Jika ekskul di sekolah partner, tagih institusi sekolahnya
+                student.partner_invoice_id = student.sekolah_id.parent_id
+            else:
+                # Jika tidak, tagih penanggung jawab siswa
+                student.partner_invoice_id = student.parent_id
+
     # --- Data Siswa ---
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
 
@@ -32,6 +70,22 @@ class StudentProfile(models.Model):
         string='Jenis Kelas',
         tracking=True
     )
+
+    jadwal_hari = fields.Selection(
+        [
+            ('senin', 'Senin'),
+            ('selasa', 'Selasa'),
+            ('rabu', 'Rabu'),
+            ('kamis', 'Kamis'),
+            ('jumat', 'Jumat'),
+            ('sabtu', 'Sabtu'),
+            ('minggu', 'Minggu'),
+        ],
+        string='Jadwal Hari',
+        tracking=True
+    )
+
+    jadwal_jam = fields.Float(string='Jadwal Jam', tracking=True)
 
     # --- Data untuk Penagihan Otomatis ---
     skema_pembayaran = fields.Selection(

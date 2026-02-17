@@ -5,10 +5,10 @@
         Modul kustom untuk mengelola database siswa KodingYuk!,
         termasuk level, jenis kelas, dan data akademik.
     """,
-    'author': "PT KodingYuk Academy", # Anda bisa ganti dengan nama Anda
-    'website': "https://www.kodingyuk.com", # Ganti jika perlu
+    'author': "PT Koding Yuk Academy", # Anda bisa ganti dengan nama Anda
+    'website': "https://kodingyuk.id", # Ganti jika perlu
     'category': 'Education',
-    'version': '17.0.1.0.1',
+    'version': '17.0.1.0.2',
     'depends': [
         'base',
         'mail',     # Untuk chatter (log & histori)

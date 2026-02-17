@@ -19,6 +19,8 @@
                             <group string="Data Akademik">
                                 <field name="level_id" options="{'no_create': True}"/>
                                 <field name="class_type_id" options="{'no_create': True}"/>
+                                <field name="jadwal_hari"/>
+                                <field name="jadwal_jam" widget="float_time"/>
                                 <field name="skema_pembayaran"/>
                                 <field name="product_id" domain="[('sale_ok', '=', True)]"/>
                                 <!-- Removed semester field -->
@@ -64,6 +66,8 @@
                     <field name="school_origin"/>
                     <field name="level_id"/>
                     <field name="class_type_id"/>
+                    <field name="jadwal_hari"/>
+                    <field name="jadwal_jam" widget="float_time"/>
                     <field name="parent_id"/>
                     <field name="parent_contact"/>
                     <field name="status"/>
