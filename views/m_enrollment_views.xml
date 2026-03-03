@@ -8,6 +8,12 @@
             <field name="arch" type="xml">
                 <form string="Pendaftaran Kursus">
                     <header>
+                        <button name="action_start_exam" 
+                                type="object" 
+                                string="Mulai Ujian"
+                                class="oe_highlight"
+                                invisible="jumlah_pertemuan_diikuti &lt; jumlah_pertemuan_wajib or status == 'lulus'"
+                        />
                         <button name="action_create_or_view_certificate_assessment" 
                                 type="object" 
                                 string="Penilaian Sertifikat"
@@ -18,6 +24,11 @@
                         <field name="status" widget="statusbar" statusbar_visible="aktif,lulus,berhenti"/>
                     </header>
                     <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_view_student_exams" type="object" class="oe_stat_button" icon="fa-pencil-square-o" invisible="not exam_ids">
+                                <field name="exam_ids" widget="statinfo" string="Ujian"/>
+                            </button>
+                        </div>
                         <group>
                             <group>
                                 <field name="name" readonly="1"/>
@@ -31,7 +42,10 @@
                             </group>
                         </group>
                         <group>
-                            <field name="jumlah_pertemuan_wajib"/>
+                            <group>
+                                <field name="jumlah_pertemuan_wajib"/>
+                                <field name="jumlah_pertemuan_diikuti"/>
+                            </group>
                         </group>
                         <notebook>
                             <page string="Hasil Penilaian" invisible="status != 'lulus'">

@@ -5,3 +5,5 @@ access_student_level_user,Access Student Level,model_m_level_siswa,base.group_us
 access_student_class_type_user,Access Student Class Type,model_m_class_type,base.group_user,1,1,1,1
 access_siswa_kursus_penilaian_sertifikat,access.siswa.kursus.penilaian.sertifikat,model_siswa_kursus_penilaian_sertifikat,base.group_user,1,1,1,1
 access_siswa_kursus_penilaian_sertifikat_line,access.siswa.kursus.penilaian.sertifikat.line,model_siswa_kursus_penilaian_sertifikat_line,base.group_user,1,1,1,1
+access_siswa_kursus_exam,access.siswa.kursus.exam,model_siswa_kursus_exam,base.group_user,1,1,1,1
+access_siswa_kursus_exam_line,access.siswa.kursus.exam.line,model_siswa_kursus_exam_line,base.group_user,1,1,1,1

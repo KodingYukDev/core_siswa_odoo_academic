@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Exam Lines Tree View -->
+        <record id="view_siswa_kursus_exam_line_tree" model="ir.ui.view">
+            <field name="name">siswa.kursus.exam.line.tree</field>
+            <field name="model">siswa.kursus.exam.line</field>
+            <field name="arch" type="xml">
+                <tree editable="bottom">
+                    <field name="exam_type" column_invisible="True"/>
+                    <field name="sequence" widget="handle"/>
+                    
+                    <!-- PG & Essai -->
+                    <field name="question" readonly="1" column_invisible="parent.exam_type == 'praktik'"/>
+                    
+                    <!-- PG Snapshot Display -->
+                    <field name="option_a" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_b" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_c" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_d" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="correct_option" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    
+                    <!-- Praktik Snapshot Display -->
+                    <field name="practice" column_invisible="parent.exam_type != 'praktik'" readonly="1"/>
+                    <field name="description" column_invisible="parent.exam_type != 'praktik'" readonly="1"/>
+
+                    <!-- Media -->
+                    <field name="media_type" column_invisible="1"/>
+                    <field name="media_url" column_invisible="1"/>
+                    <button name="action_open_media" type="object" icon="fa-play" title="Buka Media" invisible="not media_url"/>
+
+                    <!-- Input Siswa / Trainer -->
+                    <field name="student_answer_selection" column_invisible="parent.exam_type != 'pilihan_ganda'"/>
+                    <field name="is_correct" column_invisible="parent.exam_type != 'pilihan_ganda'"/>
+                    
+                    <field name="student_answer_text" column_invisible="parent.exam_type != 'essai'"/>
+                    
+                    <field name="trainer_status" column_invisible="parent.exam_type != 'praktik'"/>
+                    <field name="trainer_note"/>
+                    
+                    <field name="score" column_invisible="parent.exam_type == 'pilihan_ganda'"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Exam Form View -->
+        <record id="view_siswa_kursus_exam_form" model="ir.ui.view">
+            <field name="name">siswa.kursus.exam.form</field>
+            <field name="model">siswa.kursus.exam</field>
+            <field name="arch" type="xml">
+                <form string="Ujian Siswa">
+                    <header>
+                        <button name="action_done" string="Selesai" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                        <field name="state" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="enrollment_id" readonly="1"/>
+                                <field name="siswa_id"/>
+                                <field name="modul_id"/>
+                            </group>
+                            <group>
+                                <field name="exam_type" readonly="1"/>
+                                <field name="tanggal_ujian"/>
+                                <field name="total_score"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Detail Pertanyaan" name="details">
+                                <field name="line_ids" context="{'default_exam_id': id}"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids"/>
+                        <field name="activity_ids"/>
+                        <field name="message_ids"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <!-- Exam Tree View -->
+        <record id="view_siswa_kursus_exam_tree" model="ir.ui.view">
+            <field name="name">siswa.kursus.exam.tree</field>
+            <field name="model">siswa.kursus.exam</field>
+            <field name="arch" type="xml">
+                <tree string="Ujian Siswa">
+                    <field name="display_name"/>
+                    <field name="siswa_id"/>
+                    <field name="modul_id"/>
+                    <field name="exam_type"/>
+                    <field name="tanggal_ujian"/>
+                    <field name="total_score"/>
+                    <field name="state"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Exam Action -->
+        <record id="action_siswa_kursus_exam" model="ir.actions.act_window">
+            <field name="name">Ujian Siswa</field>
+            <field name="res_model">siswa.kursus.exam</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Menuitem -->
+        <menuitem id="menu_siswa_kursus_exam"
+                  name="Ujian Siswa"
+                  parent="menu_student_database_root"
+                  action="action_siswa_kursus_exam"
+                  sequence="30"/>
+
+    </data>
+</odoo>
