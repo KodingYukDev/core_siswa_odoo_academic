@@ -88,7 +88,7 @@ class StudentExamAPIController(http.Controller):
             return request.make_json_response({'success': False, 'error': str(e)})
 
     # ----------------------------------------------------------------
-    # START EXAM: Start all exams for enrollment
+    # START EXAM: Start a specific exam for enrollment
     # ----------------------------------------------------------------
     @http.route(['/api/v1/student/exam/start', '/api/v1/student/exam/start/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def exam_start(self, **kwargs):
@@ -98,16 +98,14 @@ class StudentExamAPIController(http.Controller):
             body = request.httprequest.data.decode('utf-8')
             data = json.loads(body)
             params = data.get('params', data)
-            enrollment_id = params.get('enrollment_id')
+            exam_id = params.get('exam_id')
 
-            enrollment = request.env['siswa.kursus.enrollment'].sudo().browse(int(enrollment_id))
-            if not enrollment.exists():
-                return request.make_json_response({'success': False, 'error': 'Enrollment tidak ditemukan.'})
+            exam = request.env['siswa.kursus.exam'].sudo().browse(int(exam_id))
+            if not exam.exists():
+                return request.make_json_response({'success': False, 'error': 'Exam tidak ditemukan.'})
 
-            # Start all draft exams for this enrollment
-            draft_exams = enrollment.exam_ids.filtered(lambda e: e.state == 'draft')
-            for exam in draft_exams:
-                exam.action_start()
+            # Start only this specific exam
+            exam.action_start()
 
             return request.make_json_response({'success': True})
 
