@@ -172,6 +172,7 @@ class StudentCourseEnrollment(models.Model):
                 new_exam = self.env['siswa.kursus.exam'].create({
                     'enrollment_id': self.id,
                     'exam_type': exam_template.exam_type,
+                    'time_limit_minutes': exam_template.time_limit_minutes,
                 })
                 # Keep exam in draft state - don't call action_start()
                 # Student will start individual exams through Flutter app

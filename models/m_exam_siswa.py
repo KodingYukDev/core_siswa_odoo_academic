@@ -66,8 +66,12 @@ class SiswaKursusExam(models.Model):
         self.ensure_one()
         if self.state != 'draft':
             return
-        time_config = self.env['exam.time.config'].search([('exam_type', '=', self.exam_type)], limit=1)
-        duration = time_config.duration_minutes if time_config else 30
+        
+        duration = self.time_limit_minutes
+        if not duration:
+            time_config = self.env['exam.time.config'].search([('exam_type', '=', self.exam_type)], limit=1)
+            duration = time_config.duration_minutes if time_config else 30
+            
         self.write({
             'state': 'in_progress',
             'start_time': fields.Datetime.now(),
