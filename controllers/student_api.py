@@ -88,6 +88,34 @@ class StudentExamAPIController(http.Controller):
             return request.make_json_response({'success': False, 'error': str(e)})
 
     # ----------------------------------------------------------------
+    # START EXAM: Start all exams for enrollment
+    # ----------------------------------------------------------------
+    @http.route(['/api/v1/student/exam/start', '/api/v1/student/exam/start/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    def exam_start(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return http.Response(status=200)
+        try:
+            body = request.httprequest.data.decode('utf-8')
+            data = json.loads(body)
+            params = data.get('params', data)
+            enrollment_id = params.get('enrollment_id')
+
+            enrollment = request.env['siswa.kursus.enrollment'].sudo().browse(int(enrollment_id))
+            if not enrollment.exists():
+                return request.make_json_response({'success': False, 'error': 'Enrollment tidak ditemukan.'})
+
+            # Start all draft exams for this enrollment
+            draft_exams = enrollment.exam_ids.filtered(lambda e: e.state == 'draft')
+            for exam in draft_exams:
+                exam.action_start()
+
+            return request.make_json_response({'success': True})
+
+        except Exception as e:
+            _logger.error(f"Start Exam Error: {e}")
+            return request.make_json_response({'success': False, 'error': str(e)})
+
+    # ----------------------------------------------------------------
     # EXAM DETAIL: Get exam questions/lines
     # ----------------------------------------------------------------
     @http.route(['/api/v1/student/exam/detail', '/api/v1/student/exam/detail/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
