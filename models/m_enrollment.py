@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-import uuid
+import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
+
+_logger = logging.getLogger(__name__)
 
 class StudentCourseEnrollment(models.Model):
     _name = 'siswa.kursus.enrollment'
@@ -120,11 +122,16 @@ class StudentCourseEnrollment(models.Model):
 
     def action_start_exam(self):
         self.ensure_one()
+        # Add debug logging
+        _logger.info(f"Starting exam for enrollment {self.id}: attended={self.jumlah_pertemuan_diikuti}, required={self.jumlah_pertemuan_wajib}")
+        
         if self.jumlah_pertemuan_diikuti < self.jumlah_pertemuan_wajib:
             raise UserError(_("Siswa belum menyelesaikan semua pertemuan wajib (%s/%s).") % (self.jumlah_pertemuan_diikuti, self.jumlah_pertemuan_wajib))
         
         if not self.modul_id:
             raise UserError(_("Modul pembelajaran belum ditentukan."))
+        
+        _logger.info(f"Module found: {self.modul_id.name}, exam templates: {len(self.modul_id.exam_ids)}")
         
         if not self.modul_id.exam_ids:
             raise UserError(_("Tidak ada soal ujian di modul %s.") % self.modul_id.name)
