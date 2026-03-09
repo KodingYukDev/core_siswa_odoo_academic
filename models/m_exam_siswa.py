@@ -31,8 +31,12 @@ class SiswaKursusExam(models.Model):
     line_ids = fields.One2many('siswa.kursus.exam.line', 'exam_id', string='Detail Pertanyaan')
     
     total_score = fields.Float(string='Skor Akhir', compute='_compute_total_score', store=True, digits=(16, 2))
+    start_time = fields.Datetime(string='Waktu Mulai Ujian', copy=False)
+    time_limit_minutes = fields.Integer(string='Batas Waktu (Menit)', default=0)
+
     state = fields.Selection([
         ('draft', 'Draft'),
+        ('in_progress', 'Sedang Dikerjakan'),
         ('done', 'Selesai')
     ], string='Status', default='draft', tracking=True)
 
@@ -57,6 +61,18 @@ class SiswaKursusExam(models.Model):
                 total_score = sum(line.score for line in rec.line_ids)
                 count = len(rec.line_ids)
                 rec.total_score = total_score / count if count > 0 else 0.0
+
+    def action_start(self):
+        self.ensure_one()
+        if self.state != 'draft':
+            return
+        time_config = self.env['exam.time.config'].search([('exam_type', '=', self.exam_type)], limit=1)
+        duration = time_config.duration_minutes if time_config else 30
+        self.write({
+            'state': 'in_progress',
+            'start_time': fields.Datetime.now(),
+            'time_limit_minutes': duration,
+        })
 
     def action_done(self):
         self.ensure_one()

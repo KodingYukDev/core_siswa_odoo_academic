@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+import uuid
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 class StudentCourseEnrollment(models.Model):
     _name = 'siswa.kursus.enrollment'
@@ -33,6 +34,18 @@ class StudentCourseEnrollment(models.Model):
         ('lulus', 'Lulus'),
         ('berhenti', 'Berhenti')
     ], string='Status', default='aktif', required=True)
+
+    access_code = fields.Char(
+        string='Kode Akses Ujian',
+        copy=False,
+        readonly=True,
+        help='Kode akses yang digenerate untuk siswa login di Student Dashboard'
+    )
+    access_code_active = fields.Boolean(
+        string='Kode Akses Aktif',
+        default=False,
+        copy=False
+    )
 
     jumlah_pertemuan_wajib = fields.Integer(
         string="Sesi Wajib",
@@ -82,6 +95,28 @@ class StudentCourseEnrollment(models.Model):
         # This will be handled by absensi_siswa module extension
         # But we ensure it's here for the logic
         pass
+
+    def action_generate_access_code(self):
+        self.ensure_one()
+        code = 'EXM-' + uuid.uuid4().hex[:6].upper()
+        self.write({
+            'access_code': code,
+            'access_code_active': True,
+        })
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Kode Akses Berhasil Digenerate'),
+                'message': _('Kode akses untuk siswa: %s') % code,
+                'sticky': True,
+                'type': 'success',
+            }
+        }
+
+    def action_deactivate_access_code(self):
+        self.ensure_one()
+        self.write({'access_code_active': False})
 
     def action_start_exam(self):
         self.ensure_one()

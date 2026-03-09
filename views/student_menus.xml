@@ -36,5 +36,12 @@
             action="action_m_class_type"
             sequence="2"/>
 
+        <menuitem
+            id="menu_exam_time_config"
+            name="Master Waktu Ujian"
+            parent="menu_student_config"
+            action="action_exam_time_config"
+            sequence="3"/>
+
     </data>
 </odoo>

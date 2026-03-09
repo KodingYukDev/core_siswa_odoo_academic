@@ -14,6 +14,18 @@
                                 class="oe_highlight"
                                 invisible="jumlah_pertemuan_diikuti &lt; jumlah_pertemuan_wajib or status == 'lulus'"
                         />
+                        <button name="action_generate_access_code" 
+                                type="object" 
+                                string="Generate Kode Akses Siswa"
+                                class="oe_highlight"
+                                invisible="not exam_ids"
+                        />
+                        <button name="action_deactivate_access_code" 
+                                type="object" 
+                                string="Nonaktifkan Kode Akses"
+                                class="btn-secondary"
+                                invisible="not access_code_active"
+                        />
                         <button name="action_create_or_view_certificate_assessment" 
                                 type="object" 
                                 string="Penilaian Sertifikat"
@@ -39,6 +51,8 @@
                                 <field name="status"/>
                                 <field name="tanggal_mulai"/>
                                 <field name="tanggal_selesai"/>
+                                <field name="access_code"/>
+                                <field name="access_code_active"/>
                             </group>
                         </group>
                         <group>
@@ -77,6 +91,8 @@
                     <field name="tanggal_mulai"/>
                     <field name="tanggal_selesai"/>
                     <field name="jumlah_pertemuan_wajib"/>
+                    <field name="access_code"/>
+                    <field name="access_code_active"/>
                 </tree>
             </field>
         </record>
