@@ -144,8 +144,8 @@ class StudentCourseEnrollment(models.Model):
                 'enrollment_id': self.id,
                 'exam_type': exam_template.exam_type,
             })
-            # Ensure the exam is moved to in_progress immediately
-            new_exam.action_start()
+            # Keep exam in draft state - don't call action_start()
+            # Student will start individual exams through Flutter app
             
             for line in exam_template.line_ids:
                 self.env['siswa.kursus.exam.line'].create({
