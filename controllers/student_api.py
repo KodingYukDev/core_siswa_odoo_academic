@@ -23,7 +23,7 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # LOGIN: Validate access code, return enrollment + student + exams
     # ----------------------------------------------------------------
-    @http.route('/api/v1/student/login', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/login', '/api/v1/student/login/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def student_login(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return http.Response(status=200)
@@ -86,7 +86,7 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # EXAM DETAIL: Get exam questions/lines
     # ----------------------------------------------------------------
-    @http.route('/api/v1/student/exam/detail', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/detail', '/api/v1/student/exam/detail/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def exam_detail(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return http.Response(status=200)
@@ -161,7 +161,7 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # START EXAM: Set state to in_progress, record start_time
     # ----------------------------------------------------------------
-    @http.route('/api/v1/student/exam/start', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/start', '/api/v1/student/exam/start/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def exam_start(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return http.Response(status=200)
@@ -210,7 +210,7 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # SUBMIT ANSWERS: Save student answers per line
     # ----------------------------------------------------------------
-    @http.route('/api/v1/student/exam/submit', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/submit', '/api/v1/student/exam/submit/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def exam_submit(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return http.Response(status=200)
@@ -273,7 +273,7 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # MARK DONE: Mark exam as done (e.g. timer expired)
     # ----------------------------------------------------------------
-    @http.route('/api/v1/student/exam/done', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/done', '/api/v1/student/exam/done/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def exam_done(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return http.Response(status=200)
@@ -308,7 +308,7 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # TIME CONFIG: Get master time configuration
     # ----------------------------------------------------------------
-    @http.route('/api/v1/student/time-config', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/time-config', '/api/v1/student/time-config/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
     def time_config(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return http.Response(status=200)
