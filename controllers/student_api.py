@@ -45,14 +45,24 @@ class StudentExamAPIController(http.Controller):
             # Get exams for this enrollment
             exams = []
             for exam in enrollment.exam_ids:
-                # Auto-start exam if it's still in draft when student logs in
-                if exam.state == 'draft':
-                    exam.sudo().action_start()
-                
                 remaining_seconds = 0
                 if exam.start_time and exam.time_limit_minutes and exam.state == 'in_progress':
                     elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
-                    remaining_seconds = max(0, (exam.time_limit_minutes * 60) - elapsed)
+                    total_limit = exam.time_limit_minutes * 60
+                    if elapsed >= total_limit:
+                        exam.action_done()
+                        remaining_seconds = 0
+                    else:
+                        remaining_seconds = max(0, total_limit - elapsed)
+                elif exam.state == 'done':
+                    remaining_seconds = 0
+                elif exam.state == 'draft':
+                    # Remaining seconds is full time for draft
+                    remaining_seconds = exam.time_limit_minutes * 60
+                    if not remaining_seconds:
+                        # Find default duration if not set
+                        time_config = request.env['exam.time.config'].sudo().search([('exam_type', '=', exam.exam_type)], limit=1)
+                        remaining_seconds = (time_config.duration_minutes if time_config else 30) * 60
 
                 exams.append({
                     'id': exam.id,
@@ -88,32 +98,6 @@ class StudentExamAPIController(http.Controller):
             return request.make_json_response({'success': False, 'error': str(e)})
 
     # ----------------------------------------------------------------
-    # START EXAM: Start a specific exam for enrollment
-    # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/exam/start', '/api/v1/student/exam/start/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
-    def exam_start(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
-        try:
-            body = request.httprequest.data.decode('utf-8')
-            data = json.loads(body)
-            params = data.get('params', data)
-            exam_id = params.get('exam_id')
-
-            exam = request.env['siswa.kursus.exam'].sudo().browse(int(exam_id))
-            if not exam.exists():
-                return request.make_json_response({'success': False, 'error': 'Exam tidak ditemukan.'})
-
-            # Start only this specific exam
-            exam.action_start()
-
-            return request.make_json_response({'success': True})
-
-        except Exception as e:
-            _logger.error(f"Start Exam Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
-
-    # ----------------------------------------------------------------
     # EXAM DETAIL: Get exam questions/lines
     # ----------------------------------------------------------------
     @http.route(['/api/v1/student/exam/detail', '/api/v1/student/exam/detail/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
@@ -142,7 +126,12 @@ class StudentExamAPIController(http.Controller):
             remaining_seconds = 0
             if exam.start_time and exam.time_limit_minutes and exam.state == 'in_progress':
                 elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
-                remaining_seconds = max(0, (exam.time_limit_minutes * 60) - elapsed)
+                total_limit = exam.time_limit_minutes * 60
+                if elapsed >= total_limit:
+                    exam.action_done()
+                    remaining_seconds = 0
+                else:
+                    remaining_seconds = max(0, total_limit - elapsed)
 
             lines = []
             for line in exam.line_ids:
@@ -222,8 +211,19 @@ class StudentExamAPIController(http.Controller):
 
             remaining_seconds = 0
             if exam.start_time and exam.time_limit_minutes:
-                elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
-                remaining_seconds = max(0, (exam.time_limit_minutes * 60) - elapsed)
+                if exam.state == 'in_progress':
+                    elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
+                    total_limit = exam.time_limit_minutes * 60
+                    if elapsed >= total_limit:
+                        exam.action_done()
+                        remaining_seconds = 0
+                    else:
+                        remaining_seconds = max(0, total_limit - elapsed)
+                elif exam.state == 'done':
+                    remaining_seconds = 0
+                else:
+                    # Should not happen as we just called action_start() for draft
+                    remaining_seconds = exam.time_limit_minutes * 60
 
             res = {
                 'success': True,
