@@ -45,6 +45,10 @@ class StudentExamAPIController(http.Controller):
             # Get exams for this enrollment
             exams = []
             for exam in enrollment.exam_ids:
+                # Auto-start exam if it's still in draft when student logs in
+                if exam.state == 'draft':
+                    exam.sudo().action_start()
+                
                 remaining_seconds = 0
                 if exam.start_time and exam.time_limit_minutes and exam.state == 'in_progress':
                     elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
