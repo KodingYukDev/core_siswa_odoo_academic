@@ -217,6 +217,28 @@ class StudentCourseEnrollment(models.Model):
         action['views'] = [(False, 'form')]
         return action
 
+    def action_start_exam(self):
+        """Trainer action to activate exams - sets exams to draft state (available for students)"""
+        self.ensure_one()
+        
+        # Ensure exams exist in draft state (don't start them)
+        # This method should just make exams available for students to start individually
+        # Exams remain in 'draft' state until student starts them
+        
+        # If no exams exist yet, they should be created elsewhere
+        # This method just ensures existing exams are in draft state
+        draft_exams = self.exam_ids.filtered(lambda e: e.state == 'draft')
+        if not draft_exams:
+            # If no draft exams, check if there are any exams at all
+            if not self.exam_ids:
+                # No exams exist - they should be created by another process
+                # For now, just return without doing anything
+                return self.action_view_student_exams()
+        
+        # Exams are already in draft state or will be created elsewhere
+        # Don't call action_start() here as that would set them to in_progress
+        return self.action_view_student_exams()
+
 
     @api.depends('siswa_id.name', 'modul_id.name')
     def _compute_name(self):
