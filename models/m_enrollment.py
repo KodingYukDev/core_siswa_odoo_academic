@@ -122,56 +122,86 @@ class StudentCourseEnrollment(models.Model):
 
     def action_start_exam(self):
         self.ensure_one()
-        # Add debug logging
-        _logger.info(f"Starting exam for enrollment {self.id}: attended={self.jumlah_pertemuan_diikuti}, required={self.jumlah_pertemuan_wajib}")
-        
-        if self.jumlah_pertemuan_diikuti < self.jumlah_pertemuan_wajib:
-            raise UserError(_("Siswa belum menyelesaikan semua pertemuan wajib (%s/%s).") % (self.jumlah_pertemuan_diikuti, self.jumlah_pertemuan_wajib))
-        
-        if not self.modul_id:
-            raise UserError(_("Modul pembelajaran belum ditentukan."))
-        
-        _logger.info(f"Module found: {self.modul_id.name}, exam templates: {len(self.modul_id.exam_ids)}")
-        
-        if not self.modul_id.exam_ids:
-            raise UserError(_("Tidak ada soal ujian di modul %s.") % self.modul_id.name)
-
-        # Auto-generate and activate access code when trainer starts the exam
-        if not self.access_code or not self.access_code_active:
-            self.action_generate_access_code()
-
-        # Generate snapshot ujian
-        for exam_template in self.modul_id.exam_ids:
-            # Cek jika sudah ada ujian tipe ini yang belum selesai
-            existing = self.exam_ids.filtered(lambda e: e.exam_type == exam_template.exam_type)
-            if existing:
-                continue
+        try:
+            _logger.info(f"Starting exam for enrollment {self.id}")
             
-            new_exam = self.env['siswa.kursus.exam'].create({
-                'enrollment_id': self.id,
-                'exam_type': exam_template.exam_type,
-            })
-            # Keep exam in draft state - don't call action_start()
-            # Student will start individual exams through Flutter app
+            # Check attendance
+            attended = self.jumlah_pertemuan_diikuti or 0
+            required = self.jumlah_pertemuan_wajib or 0
+            _logger.info(f"Attendance check: attended={attended}, required={required}")
             
-            for line in exam_template.line_ids:
-                self.env['siswa.kursus.exam.line'].create({
-                    'exam_id': new_exam.id,
-                    'sequence': line.sequence,
-                    'question': line.question,
-                    'category_name': line.category_id.name,
-                    'option_a': line.option_a,
-                    'option_b': line.option_b,
-                    'option_c': line.option_c,
-                    'option_d': line.option_d,
-                    'correct_option': line.correct_option,
-                    'practice': line.practice,
-                    'description': line.description,
-                    'media_url': line.media_url,
-                    'media_type': line.media_type,
+            if attended < required:
+                error_msg = f"Siswa belum menyelesaikan semua pertemuan wajib ({attended}/{required})."
+                _logger.error(error_msg)
+                raise UserError(_(error_msg))
+            
+            # Check module
+            _logger.info(f"Module check: modul_id={self.modul_id}, modul_name={self.modul_id.name if self.modul_id else 'None'}")
+            if not self.modul_id:
+                error_msg = "Modul pembelajaran belum ditentukan."
+                _logger.error(error_msg)
+                raise UserError(_(error_msg))
+            
+            # Check exam templates
+            exam_count = len(self.modul_id.exam_ids) if self.modul_id else 0
+            _logger.info(f"Exam templates check: count={exam_count}")
+            if exam_count == 0:
+                error_msg = f"Tidak ada soal ujian di modul {self.modul_id.name}."
+                _logger.error(error_msg)
+                raise UserError(_(error_msg))
+
+            _logger.info("All validations passed, proceeding with exam creation")
+            
+            # Auto-generate and activate access code when trainer starts the exam
+            if not self.access_code or not self.access_code_active:
+                _logger.info("Generating access code")
+                self.action_generate_access_code()
+
+            # Generate snapshot ujian
+            _logger.info(f"Creating exams from {exam_count} templates")
+            created_count = 0
+            for exam_template in self.modul_id.exam_ids:
+                # Cek jika sudah ada ujian tipe ini yang belum selesai
+                existing = self.exam_ids.filtered(lambda e: e.exam_type == exam_template.exam_type)
+                if existing:
+                    _logger.info(f"Skipping {exam_template.exam_type} - already exists")
+                    continue
+                
+                _logger.info(f"Creating exam for type: {exam_template.exam_type}")
+                new_exam = self.env['siswa.kursus.exam'].create({
+                    'enrollment_id': self.id,
+                    'exam_type': exam_template.exam_type,
                 })
-        
-        return self.action_view_student_exams()
+                # Keep exam in draft state - don't call action_start()
+                # Student will start individual exams through Flutter app
+                
+                _logger.info(f"Creating {len(exam_template.line_ids)} questions for exam {new_exam.id}")
+                for line in exam_template.line_ids:
+                    self.env['siswa.kursus.exam.line'].create({
+                        'exam_id': new_exam.id,
+                        'sequence': line.sequence,
+                        'question': line.question,
+                        'category_name': line.category_id.name,
+                        'option_a': line.option_a,
+                        'option_b': line.option_b,
+                        'option_c': line.option_c,
+                        'option_d': line.option_d,
+                        'correct_option': line.correct_option,
+                        'practice': line.practice,
+                        'description': line.description,
+                        'media_url': line.media_url,
+                        'media_type': line.media_type,
+                    })
+                
+                created_count += 1
+                _logger.info(f"Created exam {new_exam.id} with {len(exam_template.line_ids)} questions")
+
+            _logger.info(f"Exam creation completed: {created_count} exams created")
+            return self.action_view_student_exams()
+            
+        except Exception as e:
+            _logger.error(f"Error in action_start_exam: {str(e)}")
+            raise
 
     def action_view_student_exams(self):
         self.ensure_one()
