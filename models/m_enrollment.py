@@ -129,6 +129,10 @@ class StudentCourseEnrollment(models.Model):
         if not self.modul_id.exam_ids:
             raise UserError(_("Tidak ada soal ujian di modul %s.") % self.modul_id.name)
 
+        # Auto-generate and activate access code when trainer starts the exam
+        if not self.access_code or not self.access_code_active:
+            self.action_generate_access_code()
+
         # Generate snapshot ujian
         for exam_template in self.modul_id.exam_ids:
             # Cek jika sudah ada ujian tipe ini yang belum selesai
