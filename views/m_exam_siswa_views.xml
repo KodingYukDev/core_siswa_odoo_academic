@@ -16,9 +16,21 @@
                     
                     <!-- PG Snapshot Display -->
                     <field name="option_a" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_a_url" column_invisible="1"/>
+                    <button name="action_open_media" type="object" icon="fa-image" title="Media A" invisible="not option_a_url" context="{'url_field': 'option_a_url'}"/>
+                    
                     <field name="option_b" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_b_url" column_invisible="1"/>
+                    <button name="action_open_media" type="object" icon="fa-image" title="Media B" invisible="not option_b_url" context="{'url_field': 'option_b_url'}"/>
+                    
                     <field name="option_c" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_c_url" column_invisible="1"/>
+                    <button name="action_open_media" type="object" icon="fa-image" title="Media C" invisible="not option_c_url" context="{'url_field': 'option_c_url'}"/>
+                    
                     <field name="option_d" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
+                    <field name="option_d_url" column_invisible="1"/>
+                    <button name="action_open_media" type="object" icon="fa-image" title="Media D" invisible="not option_d_url" context="{'url_field': 'option_d_url'}"/>
+                    
                     <field name="correct_option" column_invisible="parent.exam_type != 'pilihan_ganda'" readonly="1"/>
                     
                     <!-- Praktik Snapshot Display -->

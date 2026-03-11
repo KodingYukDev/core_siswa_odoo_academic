@@ -67,10 +67,7 @@ class SiswaKursusExam(models.Model):
         if self.state != 'draft':
             return
         
-        duration = self.time_limit_minutes
-        if not duration:
-            time_config = self.env['exam.time.config'].search([('exam_type', '=', self.exam_type)], limit=1)
-            duration = time_config.duration_minutes if time_config else 30
+        duration = self.time_limit_minutes or 30
             
         self.write({
             'state': 'in_progress',
@@ -100,6 +97,12 @@ class SiswaKursusExamLine(models.Model):
     option_b = fields.Char("Opsi B")
     option_c = fields.Char("Opsi C")
     option_d = fields.Char("Opsi D")
+    
+    option_a_url = fields.Char("URL Opsi A (Snapshot)")
+    option_b_url = fields.Char("URL Opsi B (Snapshot)")
+    option_c_url = fields.Char("URL Opsi C (Snapshot)")
+    option_d_url = fields.Char("URL Opsi D (Snapshot)")
+    
     correct_option = fields.Selection([
         ('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')
     ], string="Opsi Benar (Snapshot)")
@@ -156,10 +159,12 @@ class SiswaKursusExamLine(models.Model):
 
     def action_open_media(self):
         self.ensure_one()
-        if self.media_url:
+        url_field = self.env.context.get('url_field', 'media_url')
+        url = getattr(self, url_field, False)
+        if url:
             return {
                 'type': 'ir.actions.act_url',
-                'url': self.media_url,
+                'url': url,
                 'target': 'new',
             }
         else:
