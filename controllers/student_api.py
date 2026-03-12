@@ -50,7 +50,7 @@ class StudentExamAPIController(http.Controller):
                     elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
                     total_limit = exam.time_limit_minutes * 60
                     if elapsed >= total_limit:
-                        exam.action_done()
+                        exam.action_done(status='timeout')
                         remaining_seconds = 0
                     else:
                         remaining_seconds = max(0, total_limit - elapsed)
@@ -144,6 +144,10 @@ class StudentExamAPIController(http.Controller):
                     'option_b': line.option_b or '',
                     'option_c': line.option_c or '',
                     'option_d': line.option_d or '',
+                    'option_a_url': line.option_a_url or '',
+                    'option_b_url': line.option_b_url or '',
+                    'option_c_url': line.option_c_url or '',
+                    'option_d_url': line.option_d_url or '',
                     'practice': line.practice or '',
                     'description': line.description or '',
                     'media_url': line.media_url or '',
@@ -215,7 +219,7 @@ class StudentExamAPIController(http.Controller):
                     elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
                     total_limit = exam.time_limit_minutes * 60
                     if elapsed >= total_limit:
-                        exam.action_done()
+                        exam.action_done(status='timeout')
                         remaining_seconds = 0
                     else:
                         remaining_seconds = max(0, total_limit - elapsed)
@@ -288,7 +292,7 @@ class StudentExamAPIController(http.Controller):
                     line.write(update_vals)
 
             # Mark exam as done after submission
-            exam.action_done()
+            exam.action_done(status='done')
 
             res = {
                 'success': True,
@@ -327,7 +331,7 @@ class StudentExamAPIController(http.Controller):
                 return request.make_json_response({'success': False, 'error': 'Ujian tidak ditemukan.'})
 
             if exam.state != 'done':
-                exam.action_done()
+                exam.action_done(status='timeout')
 
             return request.make_json_response({'success': True})
 

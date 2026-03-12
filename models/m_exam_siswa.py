@@ -32,13 +32,20 @@ class SiswaKursusExam(models.Model):
     
     total_score = fields.Float(string='Skor Akhir', compute='_compute_total_score', store=True, digits=(16, 2))
     start_time = fields.Datetime(string='Waktu Mulai Ujian', copy=False)
+    end_time = fields.Datetime(string='Waktu Selesai Ujian', copy=False)
     time_limit_minutes = fields.Integer(string='Batas Waktu (Menit)', default=0)
 
     state = fields.Selection([
         ('draft', 'Draft'),
         ('in_progress', 'Sedang Dikerjakan'),
+        ('submitted', 'Menunggu Penilaian'),
         ('done', 'Selesai')
     ], string='Status', default='draft', tracking=True)
+
+    completion_status = fields.Selection([
+        ('done', 'Selesai (Siswa)'),
+        ('timeout', 'Waktu Habis')
+    ], string='Status Penyelesaian', copy=False)
 
     display_name = fields.Char(string='Nama Ujian', compute='_compute_display_name', store=True)
 
@@ -48,7 +55,7 @@ class SiswaKursusExam(models.Model):
             type_label = dict(self._fields['exam_type'].selection).get(rec.exam_type)
             rec.display_name = f"Ujian {type_label} - {rec.enrollment_id.name}"
 
-    @api.depends('line_ids.score')
+    @api.depends('line_ids.score', 'line_ids.student_answer_selection', 'line_ids.is_correct')
     def _compute_total_score(self):
         for rec in self:
             if rec.exam_type == 'pilihan_ganda':
@@ -75,7 +82,25 @@ class SiswaKursusExam(models.Model):
             'time_limit_minutes': duration,
         })
 
-    def action_done(self):
+    def action_done(self, status='done'):
+        self.ensure_one()
+        if self.state == 'done':
+            return
+        
+        vals = {
+            'end_time': fields.Datetime.now(),
+            'completion_status': status
+        }
+        
+        # Pilihan Ganda goes directly to done, Essai/Praktik to submitted
+        if self.exam_type == 'pilihan_ganda':
+            vals['state'] = 'done'
+        else:
+            vals['state'] = 'submitted'
+            
+        self.write(vals)
+
+    def action_trainer_done(self):
         self.ensure_one()
         self.state = 'done'
 
