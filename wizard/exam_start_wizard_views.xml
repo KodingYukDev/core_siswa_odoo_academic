@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_siswa_kursus_exam_start_wizard_form" model="ir.ui.view">
+        <field name="name">siswa.kursus.exam.start.wizard.form</field>
+        <field name="model">siswa.kursus.exam.start.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mulai Ujian / Remedial">
+                <p class="oe_grey">
+                    Pilih tipe ujian yang ingin dimulai atau diulang (remedial). 
+                    Sistem akan membuat percobaan baru dan mengacak urutan soal.
+                </p>
+                <group>
+                    <field name="enrollment_id" invisible="1"/>
+                    <group string="Tipe Ujian">
+                        <field name="exam_type_pg"/>
+                        <field name="exam_type_essai"/>
+                        <field name="exam_type_praktik"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Mulai / Remedial" type="object" class="btn-primary"/>
+                    <button string="Batal" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_siswa_kursus_exam_start_wizard" model="ir.actions.act_window">
+        <field name="name">Mulai Ujian / Remedial</field>
+        <field name="res_model">siswa.kursus.exam.start.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

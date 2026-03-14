@@ -7,3 +7,4 @@ access_siswa_kursus_penilaian_sertifikat,access.siswa.kursus.penilaian.sertifika
 access_siswa_kursus_penilaian_sertifikat_line,access.siswa.kursus.penilaian.sertifikat.line,model_siswa_kursus_penilaian_sertifikat_line,base.group_user,1,1,1,1
 access_siswa_kursus_exam,access.siswa.kursus.exam,model_siswa_kursus_exam,base.group_user,1,1,1,1
 access_siswa_kursus_exam_line,access.siswa.kursus.exam.line,model_siswa_kursus_exam_line,base.group_user,1,1,1,1
+access_siswa_kursus_exam_start_wizard,access.siswa.kursus.exam.start.wizard,model_siswa_kursus_exam_start_wizard,base.group_user,1,1,1,1

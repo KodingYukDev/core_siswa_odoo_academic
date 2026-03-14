@@ -36,6 +36,7 @@
                     <!-- Praktik Snapshot Display -->
                     <field name="practice" column_invisible="parent.exam_type != 'praktik'" readonly="1"/>
                     <field name="description" column_invisible="parent.exam_type != 'praktik'" readonly="1"/>
+                    <field name="project_url" column_invisible="parent.exam_type != 'praktik'"/>
 
                     <!-- Media -->
                     <field name="media_type" column_invisible="1"/>
@@ -48,10 +49,10 @@
                     
                     <field name="student_answer_text" column_invisible="parent.exam_type != 'essai'"/>
                     
-                    <field name="trainer_status" column_invisible="parent.exam_type != 'praktik'"/>
+                    <field name="trainer_status" column_invisible="1"/>
                     <field name="trainer_note"/>
                     
-                    <field name="score" column_invisible="parent.exam_type == 'pilihan_ganda'"/>
+                    <field name="score" column_invisible="parent.exam_type == 'pilihan_ganda'" string="Skor (0-100)"/>
                 </tree>
             </field>
         </record>
@@ -65,6 +66,7 @@
                     <header>
                         <button name="action_start" string="Mulai Ujian" type="object" class="oe_highlight" invisible="state != 'draft'"/>
                         <button name="action_trainer_done" string="Selesaikan Penilaian" type="object" class="oe_highlight" invisible="state not in ['draft', 'in_progress', 'submitted']"/>
+                        <button name="action_reset_to_draft" string="Reset ke Draft" type="object" class="btn-danger" confirm="Apakah Anda yakin ingin me-reset ujian ini? Semua jawaban dan nilai akan dihapus." groups="base.group_erp_manager,students.group_student_trainer"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,submitted,done"/>
                     </header>
                     <sheet>
@@ -73,11 +75,14 @@
                                 <field name="enrollment_id" readonly="1"/>
                                 <field name="siswa_id"/>
                                 <field name="modul_id"/>
+                                <field name="attempt_number" readonly="1"/>
                             </group>
                             <group>
                                 <field name="exam_type" readonly="1"/>
                                 <field name="tanggal_ujian"/>
                                 <field name="total_score" widget="float" digits="[16, 2]"/>
+                                <field name="kkm" invisible="exam_type == 'praktik'"/>
+                                <field name="pass_fail_status" widget="badge" decoration-success="pass_fail_status == 'pass'" decoration-danger="pass_fail_status == 'fail'" invisible="exam_type == 'praktik'"/>
                             </group>
                         </group>
                         <group string="Informasi Waktu">
@@ -115,6 +120,7 @@
                     <field name="siswa_id"/>
                     <field name="modul_id"/>
                     <field name="exam_type"/>
+                    <field name="attempt_number"/>
                     <field name="tanggal_ujian"/>
                     <field name="total_score"/>
                     <field name="state"/>

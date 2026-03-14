@@ -8,9 +8,9 @@
             <field name="arch" type="xml">
                 <form string="Pendaftaran Kursus">
                     <header>
-                        <button name="action_start_exam" 
-                                type="object" 
-                                string="Mulai Ujian"
+                        <button name="%(students.action_siswa_kursus_exam_start_wizard)d" 
+                                type="action" 
+                                string="Mulai Ujian / Remedial"
                                 class="oe_highlight"
                                 invisible="jumlah_pertemuan_diikuti &lt; jumlah_pertemuan_wajib or status == 'lulus'"
                         />

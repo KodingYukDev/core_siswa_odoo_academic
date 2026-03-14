@@ -31,6 +31,12 @@ class SiswaKursusExam(models.Model):
     line_ids = fields.One2many('siswa.kursus.exam.line', 'exam_id', string='Detail Pertanyaan')
     
     total_score = fields.Float(string='Skor Akhir', compute='_compute_total_score', store=True, digits=(16, 2))
+    kkm = fields.Float(string='KKM', default=75.0)
+    pass_fail_status = fields.Selection([
+        ('pass', 'Lulus'),
+        ('fail', 'Tidak Lulus')
+    ], string='Status Kelulusan', compute='_compute_total_score', store=True)
+    
     start_time = fields.Datetime(string='Waktu Mulai Ujian', copy=False)
     end_time = fields.Datetime(string='Waktu Selesai Ujian', copy=False)
     time_limit_minutes = fields.Integer(string='Batas Waktu (Menit)', default=0)
@@ -47,15 +53,16 @@ class SiswaKursusExam(models.Model):
         ('timeout', 'Waktu Habis')
     ], string='Status Penyelesaian', copy=False)
 
+    attempt_number = fields.Integer(string='Percobaan Ke-', default=1)
     display_name = fields.Char(string='Nama Ujian', compute='_compute_display_name', store=True)
 
-    @api.depends('enrollment_id.name', 'exam_type')
+    @api.depends('enrollment_id.name', 'exam_type', 'attempt_number')
     def _compute_display_name(self):
         for rec in self:
             type_label = dict(self._fields['exam_type'].selection).get(rec.exam_type)
-            rec.display_name = f"Ujian {type_label} - {rec.enrollment_id.name}"
+            rec.display_name = f"Ujian {type_label} - {rec.enrollment_id.name} (Percobaan #{rec.attempt_number})"
 
-    @api.depends('line_ids.score', 'line_ids.student_answer_selection', 'line_ids.is_correct')
+    @api.depends('line_ids.score', 'line_ids.student_answer_selection', 'line_ids.is_correct', 'kkm', 'exam_type')
     def _compute_total_score(self):
         for rec in self:
             if rec.exam_type == 'pilihan_ganda':
@@ -68,6 +75,15 @@ class SiswaKursusExam(models.Model):
                 total_score = sum(line.score for line in rec.line_ids)
                 count = len(rec.line_ids)
                 rec.total_score = total_score / count if count > 0 else 0.0
+            
+            # Pass/Fail logic (KKM doesn't apply to Praktik)
+            if rec.exam_type in ['pilihan_ganda', 'essai']:
+                if rec.total_score >= rec.kkm:
+                    rec.pass_fail_status = 'pass'
+                else:
+                    rec.pass_fail_status = 'fail'
+            else:
+                rec.pass_fail_status = False
 
     def action_start(self):
         self.ensure_one()
@@ -104,6 +120,25 @@ class SiswaKursusExam(models.Model):
         self.ensure_one()
         self.state = 'done'
 
+    def action_reset_to_draft(self):
+        """Reset exam and all its lines to draft state for retry"""
+        self.ensure_one()
+        self.write({
+            'state': 'draft',
+            'start_time': False,
+            'end_time': False,
+            'completion_status': False,
+        })
+        # Reset line answers
+        for line in self.line_ids:
+            line.write({
+                'student_answer_selection': False,
+                'student_answer_text': False,
+                'trainer_status': False,
+                'score': 0.0,
+                'trainer_note': False,
+            })
+
 class SiswaKursusExamLine(models.Model):
     _name = 'siswa.kursus.exam.line'
     _description = 'Detail Jawaban Ujian Siswa'
@@ -135,6 +170,7 @@ class SiswaKursusExamLine(models.Model):
     # Praktik Snapshot
     practice = fields.Char("Praktik (Snapshot)")
     description = fields.Text("Deskripsi (Snapshot)")
+    project_url = fields.Char("URL Proyek (Snapshot)")
     
     # Media Snapshot
     media_url = fields.Char("Media URL (Snapshot)")

@@ -18,6 +18,9 @@
         # Security
         'security/ir.model.access.csv',
 
+        # Wizard
+        'wizard/exam_start_wizard_views.xml',
+
         # Data
 
         # Views
