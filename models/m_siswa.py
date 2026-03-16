@@ -20,7 +20,6 @@ class StudentProfile(models.Model):
         required=True,
         tracking=True
     )
-    sekolah_id = fields.Many2one('m.sekolah', string='Asal Sekolah', tracking=True)
 
     # --- Data Siswa ---
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
