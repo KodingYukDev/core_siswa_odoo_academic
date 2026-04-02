@@ -22,6 +22,7 @@ class StudentProfile(models.Model):
     )
 
     # --- Data Siswa ---
+    image_1920 = fields.Image(string="Foto Profil Siswa", max_width=1920, max_height=1920)
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
     nis = fields.Char(string='NIS', tracking=True)
 
@@ -127,6 +128,15 @@ class StudentProfile(models.Model):
         'siswa.kursus.enrollment',
         'siswa_id',
         string='Riwayat Kursus'
+    )
+
+    # --- Data Portofolio ---
+    portfolio_slug = fields.Char(string='URL Slug Portofolio', tracking=True, help='Contoh: aril-saputra')
+    bio_singkat = fields.Text(string='Bio Portofolio', tracking=True, help='Misal: Suka bikin game Roblox dan ahli Minecraft!')
+    portfolio_project_ids = fields.One2many(
+        'student.portfolio.project',
+        'siswa_id',
+        string='Daftar Karya/Proyek'
     )
 
     current_enrollment_id = fields.Many2one(
