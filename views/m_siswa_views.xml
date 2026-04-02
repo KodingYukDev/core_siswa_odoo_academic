@@ -42,6 +42,70 @@
                                     </tree>
                                 </field>
                             </page>
+                            <page string="Portofolio &amp; Karya">
+                                <group>
+                                    <group string="Profil Publik">
+                                        <field name="portfolio_slug" placeholder="misal: aril-saputra"/>
+                                        <field name="bio_singkat" placeholder="Bio singkat untuk halaman publik..."/>
+                                    </group>
+                                </group>
+                                <separator string="Daftar Karya / Proyek"/>
+                                <field name="portfolio_project_ids">
+                                    <tree>
+                                        <field name="name"/>
+                                        <field name="category"/>
+                                        <field name="project_url" widget="url"/>
+                                        <field name="create_date" string="Dibuat"/>
+                                    </tree>
+                                    <form string="Detail Karya">
+                                        <sheet>
+                                            <group>
+                                                <group>
+                                                    <field name="name"/>
+                                                    <field name="category"/>
+                                                </group>
+                                                <group>
+                                                    <field name="project_url" widget="url"/>
+                                                </group>
+                                            </group>
+                                            <group string="Deskripsi">
+                                                <field name="description" nolabel="1" placeholder="Ceritakan tentang karya ini..."/>
+                                            </group>
+                                            <notebook>
+                                                <page string="Media (Foto/Video)">
+                                                    <field name="media_ids">
+                                                        <kanban>
+                                                            <field name="id"/>
+                                                            <field name="media_type"/>
+                                                            <templates>
+                                                                <t t-name="kanban-box">
+                                                                    <div class="oe_kanban_global_click">
+                                                                        <div class="o_kanban_image">
+                                                                            <img t-if="record.media_type.raw_value == 'image'" t-att-src="kanban_image('student.portfolio.project.media', 'file_data', record.id.raw_value)" alt="Media" class="o_image_64_contain"/>
+                                                                            <div t-if="record.media_type.raw_value == 'video'" class="fa fa-file-video-o fa-5x text-center"/>
+                                                                        </div>
+                                                                        <div class="oe_kanban_details">
+                                                                            <field name="media_type"/>
+                                                                        </div>
+                                                                    </div>
+                                                                </t>
+                                                            </templates>
+                                                        </kanban>
+                                                        <form>
+                                                            <group>
+                                                                <field name="media_type"/>
+                                                                <field name="file_data" filename="file_name" widget="binary"/>
+                                                                <field name="file_name" invisible="1"/>
+                                                                <field name="sequence"/>
+                                                            </group>
+                                                        </form>
+                                                    </field>
+                                                </page>
+                                            </notebook>
+                                        </sheet>
+                                    </form>
+                                </field>
+                            </page>
                             <page string="Catatan">
                                  <field name="notes" placeholder="Catatan tambahan..."/>
                             </page>
