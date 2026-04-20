@@ -23,21 +23,15 @@ class StudentExamAPIController(http.Controller):
     # ----------------------------------------------------------------
     # LOGIN: Validate access code, return enrollment + student + exams
     # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/login', '/api/v1/student/login/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/login', '/api/v1/student/login/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def student_login(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
         try:
-            # Handle both JSON-RPC and plain JSON
-            body = request.httprequest.data.decode('utf-8')
-            data = json.loads(body)
-            params = data.get('params', data)
-            access_code = params.get('access_code', '').strip().upper()
+            # For type='json', Odoo automatically parses params into kwargs
+            access_code = kwargs.get('access_code', '').strip().upper()
 
             enrollment = self._validate_access_code(access_code)
             if not enrollment:
-                res = {'success': False, 'error': 'Kode akses tidak valid atau sudah tidak aktif.'}
-                return request.make_json_response(res)
+                return {'success': False, 'error': 'Kode akses tidak valid atau sudah tidak aktif.'}
 
             student = enrollment.siswa_id
             modul = enrollment.modul_id
@@ -91,29 +85,144 @@ class StudentExamAPIController(http.Controller):
                 },
                 'exams': exams,
             }
-            return request.make_json_response(res)
+            return res
 
         except Exception as e:
             _logger.error(f"Student Login Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
+            return {'success': False, 'error': str(e)}
+
+    # ----------------------------------------------------------------
+    # DASHBOARD DATA: Full data for the student dashboard
+    # ----------------------------------------------------------------
+    @http.route(['/api/v1/student/dashboard_data', '/api/v1/student/dashboard_data/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
+    def student_dashboard_data(self, **kwargs):
+        try:
+            access_code = kwargs.get('access_code', '').strip().upper()
+
+            enrollment = self._validate_access_code(access_code)
+            if not enrollment:
+                return {'success': False, 'error': 'Kode akses tidak valid.'}
+
+            student = enrollment.siswa_id
+            modul = enrollment.modul_id
+
+            # 1. Profile Data
+            profile = {
+                'id': student.id,
+                'name': student.name,
+                'nis': student.nis or '',
+                'class_name': student.class_name or '',
+                'level_name': student.level_id.name if student.level_id else '',
+                'tipe_siswa': student.tipe_siswa,
+                'join_date': str(student.join_date) if student.join_date else '',
+                'status': student.status,
+                'bio': student.bio_singkat or '',
+            }
+
+            # 2. Attendance Data
+            absensi_rec = request.env['absensi.siswa.absensi'].sudo().search([('enrollment_id', '=', enrollment.id)], limit=1)
+            attendance_summary = {
+                'total_hadir': 0,
+                'total_izin': 0,
+                'total_absen': 0,
+                'total_pertemuan': 0,
+                'pertemuan_ke_berapa': 0,
+            }
+            attendance_history = []
+            
+            if absensi_rec:
+                attendance_summary['total_pertemuan'] = absensi_rec.pertemuan_count
+                for line in absensi_rec.attendance_line_ids:
+                    if line.status == 'hadir': attendance_summary['total_hadir'] += 1
+                    elif line.status == 'izin': attendance_summary['total_izin'] += 1
+                    elif line.status == 'absen': attendance_summary['total_absen'] += 1
+                    
+                    if line.status:
+                        attendance_summary['pertemuan_ke_berapa'] += 1
+                    
+                    attendance_history.append({
+                        'id': line.id,
+                        'pertemuan_ke': line.pertemuan_ke,
+                        'display_name': line.display_name,
+                        'status': line.status or 'belum',
+                        'tanggal_waktu': str(line.tanggal_waktu) if line.tanggal_waktu else '',
+                        'notes': line.notes or '',
+                    })
+
+            # 3. Certification / Performance
+            penilaian_rec = request.env['siswa.kursus.penilaian.sertifikat'].sudo().search([('enrollment_id', '=', enrollment.id)], limit=1)
+            performance = {
+                'total_score': penilaian_rec.total_score if penilaian_rec else 0,
+                'average_score': penilaian_rec.average_score if penilaian_rec else 0,
+                'state': penilaian_rec.state if penilaian_rec else 'draft',
+                'lines': []
+            }
+            if penilaian_rec:
+                for line in penilaian_rec.assessment_line_ids:
+                    performance['lines'].append({
+                        'name': line.name,
+                        'score': line.score,
+                    })
+
+            # 4. Exam List (Reuse logic from login)
+            exams = []
+            for exam in enrollment.exam_ids:
+                remaining_seconds = 0
+                if exam.start_time and exam.time_limit_minutes and exam.state == 'in_progress':
+                    elapsed = (fields.Datetime.now() - exam.start_time).total_seconds()
+                    total_limit = exam.time_limit_minutes * 60
+                    if elapsed >= total_limit:
+                        exam.action_done(status='timeout')
+                        remaining_seconds = 0
+                    else:
+                        remaining_seconds = max(0, total_limit - elapsed)
+                elif exam.state == 'done':
+                    remaining_seconds = 0
+                elif exam.state == 'draft':
+                    time_config = request.env['exam.time.config'].sudo().search([('exam_type', '=', exam.exam_type)], limit=1)
+                    remaining_seconds = (exam.time_limit_minutes if exam.time_limit_minutes else (time_config.duration_minutes if time_config else 30)) * 60
+
+                exams.append({
+                    'id': exam.id,
+                    'display_name': exam.display_name,
+                    'exam_type': exam.exam_type,
+                    'state': exam.state,
+                    'total_score': exam.total_score,
+                    'remaining_seconds': int(remaining_seconds),
+                })
+
+            res = {
+                'success': True,
+                'profile': profile,
+                'attendance_summary': attendance_summary,
+                'attendance_history': attendance_history,
+                'performance': performance,
+                'exams': exams,
+                'enrollment': {
+                    'id': enrollment.id,
+                    'name': enrollment.name,
+                    'modul_name': modul.name if modul else '',
+                    'status': enrollment.status,
+                }
+            }
+            return res
+
+        except Exception as e:
+            _logger.error(f"Dashboard Data Error: {e}")
+            return {'success': False, 'error': str(e)}
 
     # ----------------------------------------------------------------
     # EXAM DETAIL: Get exam questions/lines
     # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/exam/detail', '/api/v1/student/exam/detail/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/detail', '/api/v1/student/exam/detail/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def exam_detail(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
         try:
-            body = request.httprequest.data.decode('utf-8')
-            data = json.loads(body)
-            params = data.get('params', data)
-            access_code = params.get('access_code', '').strip().upper()
-            exam_id = params.get('exam_id')
+            access_code = kwargs.get('access_code', '').strip().upper()
+            exam_id = kwargs.get('exam_id')
 
             enrollment = self._validate_access_code(access_code)
             if not enrollment:
-                return request.make_json_response({'success': False, 'error': 'Kode akses tidak valid.'})
+                return {'success': False, 'error': 'Kode akses tidak valid.'}
 
             exam = request.env['siswa.kursus.exam'].sudo().search([
                 ('id', '=', int(exam_id)),
@@ -121,7 +230,7 @@ class StudentExamAPIController(http.Controller):
             ], limit=1)
 
             if not exam:
-                return request.make_json_response({'success': False, 'error': 'Ujian tidak ditemukan.'})
+                return {'success': False, 'error': 'Ujian tidak ditemukan.'}
 
             remaining_seconds = 0
             if exam.start_time and exam.time_limit_minutes and exam.state == 'in_progress':
@@ -175,29 +284,24 @@ class StudentExamAPIController(http.Controller):
                 },
                 'lines': lines,
             }
-            return request.make_json_response(res)
+            return res
 
         except Exception as e:
             _logger.error(f"Exam Detail Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
+            return {'success': False, 'error': str(e)}
 
     # ----------------------------------------------------------------
     # START EXAM: Set state to in_progress, record start_time
     # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/exam/start', '/api/v1/student/exam/start/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/start', '/api/v1/student/exam/start/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def exam_start(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
         try:
-            body = request.httprequest.data.decode('utf-8')
-            data = json.loads(body)
-            params = data.get('params', data)
-            access_code = params.get('access_code', '').strip().upper()
-            exam_id = params.get('exam_id')
+            access_code = kwargs.get('access_code', '').strip().upper()
+            exam_id = kwargs.get('exam_id')
 
             enrollment = self._validate_access_code(access_code)
             if not enrollment:
-                return request.make_json_response({'success': False, 'error': 'Kode akses tidak valid.'})
+                return {'success': False, 'error': 'Kode akses tidak valid.'}
 
             exam = request.env['siswa.kursus.exam'].sudo().search([
                 ('id', '=', int(exam_id)),
@@ -205,7 +309,7 @@ class StudentExamAPIController(http.Controller):
             ], limit=1)
 
             if not exam:
-                return request.make_json_response({'success': False, 'error': 'Ujian tidak ditemukan.'})
+                return {'success': False, 'error': 'Ujian tidak ditemukan.'}
 
             if exam.state == 'done':
                 return request.make_json_response({'success': False, 'error': 'Ujian sudah selesai.'})
@@ -235,30 +339,22 @@ class StudentExamAPIController(http.Controller):
                 'time_limit_minutes': exam.time_limit_minutes,
                 'remaining_seconds': int(remaining_seconds),
             }
-            return request.make_json_response(res)
+            return res
 
         except Exception as e:
             _logger.error(f"Exam Start Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
+            return {'success': False, 'error': str(e)}
 
-    # ----------------------------------------------------------------
-    # SUBMIT ANSWERS: Save student answers per line
-    # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/exam/submit', '/api/v1/student/exam/submit/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/submit', '/api/v1/student/exam/submit/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def exam_submit(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
         try:
-            body = request.httprequest.data.decode('utf-8')
-            data = json.loads(body)
-            params = data.get('params', data)
-            access_code = params.get('access_code', '').strip().upper()
-            exam_id = params.get('exam_id')
-            answers = params.get('answers', [])
+            access_code = kwargs.get('access_code', '').strip().upper()
+            exam_id = kwargs.get('exam_id')
+            answers = kwargs.get('answers', [])
 
             enrollment = self._validate_access_code(access_code)
             if not enrollment:
-                return request.make_json_response({'success': False, 'error': 'Kode akses tidak valid.'})
+                return {'success': False, 'error': 'Kode akses tidak valid.'}
 
             exam = request.env['siswa.kursus.exam'].sudo().search([
                 ('id', '=', int(exam_id)),
@@ -266,19 +362,17 @@ class StudentExamAPIController(http.Controller):
             ], limit=1)
 
             if not exam:
-                return request.make_json_response({'success': False, 'error': 'Ujian tidak ditemukan.'})
+                return {'success': False, 'error': 'Ujian tidak ditemukan.'}
 
             if exam.state == 'done':
-                return request.make_json_response({'success': False, 'error': 'Ujian sudah selesai, tidak bisa submit lagi.'})
+                return {'success': False, 'error': 'Ujian sudah selesai, tidak bisa submit lagi.'}
 
             ExamLine = request.env['siswa.kursus.exam.line'].sudo()
-
             for ans in answers:
                 line_id = ans.get('line_id')
                 line = ExamLine.search([('id', '=', int(line_id)), ('exam_id', '=', exam.id)], limit=1)
                 if not line:
                     continue
-
                 update_vals = {}
                 if exam.exam_type == 'pilihan_ganda':
                     selection = ans.get('answer', '')
@@ -287,75 +381,45 @@ class StudentExamAPIController(http.Controller):
                 elif exam.exam_type == 'essai':
                     text = ans.get('answer', '')
                     update_vals['student_answer_text'] = text
-
                 if update_vals:
                     line.write(update_vals)
 
-            # Mark exam as done after submission
             exam.action_done(status='done')
-
-            res = {
-                'success': True,
-                'total_score': exam.total_score,
-            }
-            return request.make_json_response(res)
+            return {'success': True, 'total_score': exam.total_score}
 
         except Exception as e:
             _logger.error(f"Exam Submit Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
+            return {'success': False, 'error': str(e)}
 
-    # ----------------------------------------------------------------
-    # MARK DONE: Mark exam as done (e.g. timer expired)
-    # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/exam/done', '/api/v1/student/exam/done/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/exam/done', '/api/v1/student/exam/done/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def exam_done(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
         try:
-            body = request.httprequest.data.decode('utf-8')
-            data = json.loads(body)
-            params = data.get('params', data)
-            access_code = params.get('access_code', '').strip().upper()
-            exam_id = params.get('exam_id')
-
+            access_code = kwargs.get('access_code', '').strip().upper()
+            exam_id = kwargs.get('exam_id')
             enrollment = self._validate_access_code(access_code)
             if not enrollment:
-                return request.make_json_response({'success': False, 'error': 'Kode akses tidak valid.'})
-
+                return {'success': False, 'error': 'Kode akses tidak valid.'}
             exam = request.env['siswa.kursus.exam'].sudo().search([
                 ('id', '=', int(exam_id)),
                 ('enrollment_id', '=', enrollment.id),
             ], limit=1)
-
             if not exam:
-                return request.make_json_response({'success': False, 'error': 'Ujian tidak ditemukan.'})
-
+                return {'success': False, 'error': 'Ujian tidak ditemukan.'}
             if exam.state != 'done':
                 exam.action_done(status='timeout')
-
-            return request.make_json_response({'success': True})
-
+            return {'success': True}
         except Exception as e:
             _logger.error(f"Exam Done Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
+            return {'success': False, 'error': str(e)}
 
-    # ----------------------------------------------------------------
-    # TIME CONFIG: Get master time configuration
-    # ----------------------------------------------------------------
-    @http.route(['/api/v1/student/time-config', '/api/v1/student/time-config/'], type='http', auth='none', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route(['/api/v1/student/time-config', '/api/v1/student/time-config/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def time_config(self, **kwargs):
-        if request.httprequest.method == 'OPTIONS':
-            return http.Response(status=200)
         try:
             configs = request.env['exam.time.config'].sudo().search([])
             result = []
             for cfg in configs:
-                result.append({
-                    'exam_type': cfg.exam_type,
-                    'duration_minutes': cfg.duration_minutes,
-                })
-            return request.make_json_response({'success': True, 'configs': result})
-
+                result.append({'exam_type': cfg.exam_type, 'duration_minutes': cfg.duration_minutes})
+            return {'success': True, 'configs': result}
         except Exception as e:
             _logger.error(f"Time Config Error: {e}")
-            return request.make_json_response({'success': False, 'error': str(e)})
+            return {'success': False, 'error': str(e)}
