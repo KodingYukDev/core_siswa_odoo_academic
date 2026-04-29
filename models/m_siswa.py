@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
+import base64
+import time
+from ..lib.firebase_service import upload_file_to_firebase
 
 class StudentProfile(models.Model):
     _name = 'm.siswa'
@@ -162,5 +165,38 @@ class StudentProfile(models.Model):
         ('name_unique', 'unique(name, parent_id)', 'Nama siswa dengan orang tua yang sama harus unik!')
     ]
 
-    # --- Helper ---
-    # Removed @api.onchange('partner_id') as partner_id is no longer for the student
+    @api.model
+    def create(self, vals):
+        res = super(StudentProfile, self).create(vals)
+        if vals.get('image_1920'):
+            res._upload_image_to_bucket()
+        return res
+
+    def write(self, vals):
+        res = super(StudentProfile, self).write(vals)
+        if vals.get('image_1920'):
+            self._upload_image_to_bucket()
+        return res
+
+    def _upload_image_to_bucket(self):
+        for rec in self:
+            if not rec.image_1920:
+                continue
+            try:
+                # Siapkan data
+                file_content = base64.b64decode(rec.image_1920)
+                file_name = f"profile_{rec.id}_{int(time.time())}.png"
+                dest_path = f"portfolio/profiles/{rec.id}/{file_name}"
+                
+                # Upload
+                url = upload_file_to_firebase(self.env, file_content, file_name, dest_path, 'image/png')
+                
+                # Update URL dan hapus binary agar DB ringan
+                # Gunakan super().write agar tidak memicu loop rekursif write()
+                super(StudentProfile, rec).write({
+                    'profile_image_url': url,
+                    'image_1920': False
+                })
+            except Exception as e:
+                # Jika gagal, biarkan tetap di Binary sebagai fallback
+                pass
