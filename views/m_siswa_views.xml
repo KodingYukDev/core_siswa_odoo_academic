@@ -47,6 +47,7 @@
                                     <group string="Profil Publik">
                                         <field name="portfolio_slug" placeholder="misal: aril-saputra"/>
                                         <field name="bio_singkat" placeholder="Bio singkat untuk halaman publik..."/>
+                                        <field name="profile_image_url" widget="url" readonly="1"/>
                                     </group>
                                 </group>
                                 <separator string="Daftar Karya / Proyek"/>
@@ -81,8 +82,12 @@
                                                                 <t t-name="kanban-box">
                                                                     <div class="oe_kanban_global_click">
                                                                         <div class="o_kanban_image">
-                                                                            <img t-if="record.media_type.raw_value == 'image'" t-att-src="kanban_image('student.portfolio.project.media', 'file_data', record.id.raw_value)" alt="Media" class="o_image_64_contain"/>
-                                                                            <div t-if="record.media_type.raw_value == 'video'" class="fa fa-file-video-o fa-5x text-center"/>
+                                                                            <field name="file_url" invisible="1"/>
+                                                                            <img t-if="record.file_url.raw_value" t-att-src="record.file_url.raw_value" alt="Media" class="o_image_64_contain"/>
+                                                                            <t t-if="!record.file_url.raw_value">
+                                                                                <img t-if="record.media_type.raw_value == 'image'" t-att-src="kanban_image('student.portfolio.project.media', 'file_data', record.id.raw_value)" alt="Media" class="o_image_64_contain"/>
+                                                                                <div t-if="record.media_type.raw_value == 'video'" class="fa fa-file-video-o fa-5x text-center"/>
+                                                                            </t>
                                                                         </div>
                                                                         <div class="oe_kanban_details">
                                                                             <field name="media_type"/>
@@ -94,7 +99,8 @@
                                                         <form>
                                                             <group>
                                                                 <field name="media_type"/>
-                                                                <field name="file_data" filename="file_name" widget="binary"/>
+                                                                <field name="file_data" filename="file_name" widget="binary" attrs="{'invisible': [('file_url', '!=', False)]}"/>
+                                                                <field name="file_url" widget="url" attrs="{'invisible': [('file_url', '=', False)]}"/>
                                                                 <field name="file_name" invisible="1"/>
                                                                 <field name="sequence"/>
                                                             </group>
