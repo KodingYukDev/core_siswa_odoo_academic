@@ -186,7 +186,7 @@ class StudentProfile(models.Model):
                 # Siapkan data
                 file_content = base64.b64decode(rec.image_1920)
                 file_name = f"profile_{rec.id}_{int(time.time())}.png"
-                dest_path = f"portfolio/profiles/{rec.id}/{file_name}"
+                dest_path = f"students/profiles/{rec.id}/{file_name}"
                 
                 # Upload
                 url = upload_file_to_firebase(self.env, file_content, file_name, dest_path, 'image/png')

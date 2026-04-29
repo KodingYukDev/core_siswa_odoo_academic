@@ -78,7 +78,7 @@ class StudentPortfolioProjectMedia(models.Model):
             try:
                 file_content = base64.b64decode(rec.file_data)
                 f_name = rec.file_name or f"media_{int(time.time())}.png"
-                dest_path = f"portfolio/projects/{rec.project_id.siswa_id.id}/project_{rec.project_id.id}/{f_name}"
+                dest_path = f"students/projects/{rec.project_id.siswa_id.id}/project_{rec.project_id.id}/{f_name}"
                 
                 # Tentukan mimetype
                 c_type = 'image/png' if rec.media_type == 'image' else 'video/mp4'
