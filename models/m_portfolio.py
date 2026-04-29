@@ -51,5 +51,6 @@ class StudentPortfolioProjectMedia(models.Model):
         ('video', 'Video / File Lokal')
     ], string='Jenis Media', required=True, default='image')
     
-    file_data = fields.Binary(string='File (Image/Video)', attachment=True, required=True)
+    file_data = fields.Binary(string='File (Image/Video)', attachment=True)
     file_name = fields.Char(string='Nama File')
+    file_url = fields.Char(string='URL File (Cloud Bucket)', help='URL eksternal jika file disimpan di Cloud Storage')

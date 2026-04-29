@@ -23,6 +23,7 @@ class StudentProfile(models.Model):
 
     # --- Data Siswa ---
     image_1920 = fields.Image(string="Foto Profil Siswa", max_width=1920, max_height=1920)
+    profile_image_url = fields.Char(string='URL Foto Profil (Cloud)', help='URL eksternal jika foto disimpan di Cloud Storage')
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
     nis = fields.Char(string='NIS', tracking=True)
 
