@@ -7,6 +7,19 @@
             <field name="model">m.siswa</field>
             <field name="arch" type="xml">
                 <form string="Profil Siswa">
+                    <header>
+                        <button name="action_generate_access_code"
+                                type="object"
+                                string="🔑 Generate Kode Akses"
+                                class="oe_highlight"
+                                invisible="access_code_active == True"
+                        />
+                        <button name="action_deactivate_access_code"
+                                type="object"
+                                string="Nonaktifkan Kode"
+                                invisible="access_code_active == False"
+                        />
+                    </header>
                     <sheet>
                         <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'image_128'}"/>
                         <group>
@@ -28,6 +41,10 @@
                             <group string="Data Penanggung Jawab">
                                 <field name="parent_id"/>
                                 <field name="parent_contact"/>
+                            </group>
+                            <group string="Kode Akses Dashboard">
+                                <field name="access_code" readonly="1"/>
+                                <field name="access_code_active" readonly="1"/>
                             </group>
                         </group>
                         <notebook>
