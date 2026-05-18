@@ -11,14 +11,37 @@ _logger = logging.getLogger(__name__)
 class StudentExamAPIController(http.Controller):
 
     def _validate_access_code(self, access_code):
-        """Validate access code and return enrollment record or False."""
+        """
+        Validate access code.
+        New approach: access_code is on m.siswa (prefix ST-).
+        Legacy: access_code on siswa.kursus.enrollment (prefix EXM- or ST- on enrollment).
+        Returns (student, enrollment) tuple or (False, False).
+        """
         if not access_code:
-            return False
+            return False, False
+
+        # New: try student-level access code first (ST- prefix)
+        student = request.env['m.siswa'].sudo().search([
+            ('access_code', '=', access_code),
+            ('access_code_active', '=', True),
+        ], limit=1)
+        if student:
+            # Find active enrollment for this student
+            enrollment = request.env['siswa.kursus.enrollment'].sudo().search([
+                ('siswa_id', '=', student.id),
+                ('status', '=', 'aktif'),
+            ], order='tanggal_mulai desc', limit=1)
+            return student, enrollment
+
+        # Legacy: try enrollment-level access code (EXM- or old ST- on enrollment)
         enrollment = request.env['siswa.kursus.enrollment'].sudo().search([
             ('access_code', '=', access_code),
             ('access_code_active', '=', True),
         ], limit=1)
-        return enrollment if enrollment else False
+        if enrollment:
+            return enrollment.siswa_id, enrollment
+
+        return False, False
 
     # ----------------------------------------------------------------
     # LOGIN: Validate access code, return enrollment + student + exams
@@ -29,11 +52,13 @@ class StudentExamAPIController(http.Controller):
             # For type='json', Odoo automatically parses params into kwargs
             access_code = kwargs.get('access_code', '').strip().upper()
 
-            enrollment = self._validate_access_code(access_code)
-            if not enrollment:
+            student, enrollment = self._validate_access_code(access_code)
+            if not student:
                 return {'success': False, 'error': 'Kode akses tidak valid atau sudah tidak aktif.'}
 
-            student = enrollment.siswa_id
+            if not enrollment:
+                return {'success': False, 'error': 'Siswa belum memiliki kursus aktif.'}
+
             modul = enrollment.modul_id
 
             # Get exams for this enrollment
@@ -99,11 +124,13 @@ class StudentExamAPIController(http.Controller):
         try:
             access_code = kwargs.get('access_code', '').strip().upper()
 
-            enrollment = self._validate_access_code(access_code)
-            if not enrollment:
+            student, enrollment = self._validate_access_code(access_code)
+            if not student:
                 return {'success': False, 'error': 'Kode akses tidak valid.'}
 
-            student = enrollment.siswa_id
+            if not enrollment:
+                return {'success': False, 'error': 'Siswa belum memiliki kursus aktif.'}
+
             modul = enrollment.modul_id
 
             # 1. Profile Data
@@ -220,7 +247,7 @@ class StudentExamAPIController(http.Controller):
             access_code = kwargs.get('access_code', '').strip().upper()
             exam_id = kwargs.get('exam_id')
 
-            enrollment = self._validate_access_code(access_code)
+            student, enrollment = self._validate_access_code(access_code)
             if not enrollment:
                 return {'success': False, 'error': 'Kode akses tidak valid.'}
 
@@ -299,7 +326,7 @@ class StudentExamAPIController(http.Controller):
             access_code = kwargs.get('access_code', '').strip().upper()
             exam_id = kwargs.get('exam_id')
 
-            enrollment = self._validate_access_code(access_code)
+            student, enrollment = self._validate_access_code(access_code)
             if not enrollment:
                 return {'success': False, 'error': 'Kode akses tidak valid.'}
 
@@ -352,7 +379,7 @@ class StudentExamAPIController(http.Controller):
             exam_id = kwargs.get('exam_id')
             answers = kwargs.get('answers', [])
 
-            enrollment = self._validate_access_code(access_code)
+            student, enrollment = self._validate_access_code(access_code)
             if not enrollment:
                 return {'success': False, 'error': 'Kode akses tidak valid.'}
 
@@ -396,7 +423,7 @@ class StudentExamAPIController(http.Controller):
         try:
             access_code = kwargs.get('access_code', '').strip().upper()
             exam_id = kwargs.get('exam_id')
-            enrollment = self._validate_access_code(access_code)
+            student, enrollment = self._validate_access_code(access_code)
             if not enrollment:
                 return {'success': False, 'error': 'Kode akses tidak valid.'}
             exam = request.env['siswa.kursus.exam'].sudo().search([

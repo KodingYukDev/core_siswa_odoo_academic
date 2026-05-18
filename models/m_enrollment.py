@@ -101,7 +101,7 @@ class StudentCourseEnrollment(models.Model):
 
     def action_generate_access_code(self):
         self.ensure_one()
-        code = 'EXM-' + uuid.uuid4().hex[:6].upper()
+        code = 'ST-' + uuid.uuid4().hex[:6].upper()
         self.write({
             'access_code': code,
             'access_code_active': True,
@@ -137,7 +137,11 @@ class StudentCourseEnrollment(models.Model):
             if not self.modul_id:
                 raise UserError(_("Modul pembelajaran belum ditentukan."))
             
-            # Auto-generate and activate access code
+            # Auto-generate and activate access code on student level
+            student = self.siswa_id
+            if not student.access_code or not student.access_code_active:
+                student.action_generate_access_code()
+            # Also keep enrollment-level code for backward compat
             if not self.access_code or not self.access_code_active:
                 self.action_generate_access_code()
 
