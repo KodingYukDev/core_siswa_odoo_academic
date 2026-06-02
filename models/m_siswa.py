@@ -130,6 +130,19 @@ class StudentProfile(models.Model):
     
     notes = fields.Text(string='Keterangan')
 
+    # --- Kode Akses Dashboard ---
+    access_code = fields.Char(
+        string='Kode Akses Dashboard',
+        copy=False,
+        readonly=True,
+        help='Kode akses siswa untuk login di Student Dashboard (berlaku untuk semua kursus)'
+    )
+    access_code_active = fields.Boolean(
+        string='Kode Akses Aktif',
+        default=False,
+        copy=False
+    )
+
     enrollment_ids = fields.One2many(
         'siswa.kursus.enrollment',
         'siswa_id',
@@ -160,6 +173,30 @@ class StudentProfile(models.Model):
                 student.current_enrollment_id = active_enrollments[0]
             else:
                 student.current_enrollment_id = False
+
+    def action_generate_access_code(self):
+        """Generate a unique access code for the student (ST- prefix)."""
+        import uuid
+        self.ensure_one()
+        code = 'ST-' + uuid.uuid4().hex[:6].upper()
+        self.write({
+            'access_code': code,
+            'access_code_active': True,
+        })
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Kode Akses Berhasil Digenerate',
+                'message': 'Kode akses untuk siswa: %s' % code,
+                'sticky': True,
+                'type': 'success',
+            }
+        }
+
+    def action_deactivate_access_code(self):
+        self.ensure_one()
+        self.write({'access_code_active': False})
 
     # --- SQL Constraints ---
     # No partner_id_uniq constraint as partner_id is now for parent and not unique per student profile

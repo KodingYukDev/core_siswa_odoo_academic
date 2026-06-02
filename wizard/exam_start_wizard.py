@@ -60,7 +60,11 @@ class ExamStartWizard(models.TransientModel):
         if attended < required:
             raise UserError(_(f"Siswa belum menyelesaikan semua pertemuan wajib ({attended}/{required})."))
 
-        # Create access code if needed
+        # Create access code if needed (at student level)
+        student = enrollment.siswa_id
+        if not student.access_code or not student.access_code_active:
+            student.action_generate_access_code()
+        # Also keep enrollment-level for backward compat
         if not enrollment.access_code or not enrollment.access_code_active:
             enrollment.action_generate_access_code()
 
