@@ -29,6 +29,8 @@ class StudentProfile(models.Model):
     profile_image_url = fields.Char(string='URL Foto Profil (Cloud)', help='URL eksternal jika foto disimpan di Cloud Storage')
     name = fields.Char(string='Nama Siswa', required=True, tracking=True) # New direct name field
     nis = fields.Char(string='NIS', tracking=True)
+    email = fields.Char(string='Email', tracking=True)
+    password = fields.Char(string='Password', tracking=True)
 
     class_name = fields.Char(string='Kelas', help="Contoh: 2 SD, TK B")
     
@@ -165,11 +167,12 @@ class StudentProfile(models.Model):
         ('name_unique', 'unique(name, parent_id)', 'Nama siswa dengan orang tua yang sama harus unik!')
     ]
 
-    @api.model
-    def create(self, vals):
-        res = super(StudentProfile, self).create(vals)
-        if vals.get('image_1920'):
-            res._upload_image_to_bucket()
+    @api.model_create_multi
+    def create(self, vals_list):
+        res = super(StudentProfile, self).create(vals_list)
+        for rec, vals in zip(res, vals_list):
+            if vals.get('image_1920'):
+                rec._upload_image_to_bucket()
         return res
 
     def write(self, vals):
