@@ -154,6 +154,159 @@ class StudentExamAPIController(http.Controller):
         return summary, history
 
     # ----------------------------------------------------------------
+    # UNIFIED LOGIN: Supports Staff, Students, and General Hosting Users
+    # ----------------------------------------------------------------
+    @http.route(['/api/v1/auth/login'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
+    def unified_login(self, **kwargs):
+        try:
+            login = kwargs.get('login')
+            password = kwargs.get('password')
+            api_key = kwargs.get('api_key')
+
+            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
+            if api_key and expected_key and api_key != expected_key:
+                return {'success': False, 'error': 'Invalid API Key'}
+
+            if not login or not password:
+                return {'success': False, 'error': 'Login and password are required'}
+
+            # Try Odoo standard authentication (covers Staff, Portal, etc.)
+            db = request.session.db
+            try:
+                uid = request.session.authenticate(db, login, password)
+                if uid:
+                    user = request.env['res.users'].sudo().browse(uid)
+                    
+                    # 1. Check for Admin role (Manager group)
+                    is_admin = user.has_group('students.group_student_manager') or \
+                               user.has_group('database_siswa.group_student_manager') or \
+                               user.has_group('kodingyukid_database_siswa.group_student_manager')
+                    
+                    # 2. Check for Student status (for discount eligibility)
+                    # We check if their partner is linked to an active m.siswa record
+                    is_student = False
+                    Siswa = request.env.get('m.siswa')
+                    if Siswa:
+                        student_rec = Siswa.sudo().search([
+                            ('parent_id', '=', user.partner_id.id),
+                            ('status', '=', 'active')
+                        ], limit=1)
+                        is_student = bool(student_rec)
+
+                    return {
+                        'success': True,
+                        'role': 'ADMIN' if is_admin else 'USER',
+                        'is_student': is_student,
+                        'user': {
+                            'id': user.id,
+                            'name': user.name,
+                            'email': user.login,
+                        }
+                    }
+            except Exception:
+                # Odoo auth failed
+                pass
+
+            return {'success': False, 'error': 'Invalid login or password'}
+
+        except Exception as e:
+            _logger.error(f"Unified Login Error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    # ----------------------------------------------------------------
+    # REGISTER: Create a new Portal User in Odoo
+    # ----------------------------------------------------------------
+    @http.route(['/api/v1/auth/register'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
+    def student_register(self, **kwargs):
+        try:
+            name = kwargs.get('name')
+            email = kwargs.get('email')
+            password = kwargs.get('password')
+            api_key = kwargs.get('api_key')
+
+            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
+            if api_key and expected_key and api_key != expected_key:
+                return {'success': False, 'error': 'Invalid API Key'}
+
+            if not name or not email or not password:
+                return {'success': False, 'error': 'Name, email, and password are required'}
+
+            # Check if user already exists
+            User = request.env['res.users'].sudo()
+            existing = User.search([('login', '=', email)], limit=1)
+            if existing:
+                return {'success': False, 'error': 'Email sudah terdaftar'}
+
+            # Create Portal User
+            # We use the signup template logic if possible, or create manually
+            partner = request.env['res.partner'].sudo().create({
+                'name': name,
+                'email': email,
+                'type': 'contact',
+            })
+            
+            user = User.create({
+                'name': name,
+                'login': email,
+                'partner_id': partner.id,
+                'password': password,
+                'groups_id': [(6, 0, [request.env.ref('base.group_portal').id])]
+            })
+
+            return {
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'name': user.name,
+                    'email': user.login,
+                }
+            }
+
+        except Exception as e:
+            _logger.error(f"Register Error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    # ----------------------------------------------------------------
+    # OTP: Generate and Verify
+    # ----------------------------------------------------------------
+    @http.route(['/api/v1/auth/otp/generate'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
+    def generate_otp(self, **kwargs):
+        try:
+            email = kwargs.get('email')
+            api_key = kwargs.get('api_key')
+            
+            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
+            if api_key and expected_key and api_key != expected_key:
+                return {'success': False, 'error': 'Invalid API Key'}
+
+            if not email:
+                return {'success': False, 'error': 'Email is required'}
+
+            otp = request.env['ky.otp'].sudo().generate_otp(email)
+            return {'success': True, 'otp': otp}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route(['/api/v1/auth/otp/verify'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
+    def verify_otp(self, **kwargs):
+        try:
+            email = kwargs.get('email')
+            otp = kwargs.get('otp')
+            api_key = kwargs.get('api_key')
+
+            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
+            if api_key and expected_key and api_key != expected_key:
+                return {'success': False, 'error': 'Invalid API Key'}
+
+            if not email or not otp:
+                return {'success': False, 'error': 'Email and OTP are required'}
+
+            valid = request.env['ky.otp'].sudo().verify_otp(email, otp)
+            return {'success': valid}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    # ----------------------------------------------------------------
     # LOGIN: Validate access code, return enrollment + student + exams
     # ----------------------------------------------------------------
     @http.route(['/api/v1/student/login', '/api/v1/student/login/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
