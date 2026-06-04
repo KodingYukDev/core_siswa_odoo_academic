@@ -596,8 +596,10 @@ class StudentExamAPIController(http.Controller):
                 if update_vals:
                     line.write(update_vals)
 
+            needs_grading = exam.exam_type in ('essai', 'praktik')
+            final_state = 'submitted' if needs_grading else 'done'
             if is_school:
-                exam.write({'state': 'done', 'completion_status': 'done', 'end_time': fields.Datetime.now()})
+                exam.write({'state': final_state, 'completion_status': 'done', 'end_time': fields.Datetime.now()})
             else:
                 exam.action_done(status='done')
             return {'success': True, 'total_score': exam.total_score}
