@@ -7,13 +7,14 @@
     <template id="rapot_page" name="Halaman Rapot Siswa">
         <div class="page" style="font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #000;">
 
-            <!-- Header: logo kiri + judul 3 baris di tengah, garis tebal bawah -->
+            <!-- Kop: logo KodingYuk kiri, judul 3 baris tengah, logo sekolah kanan (jika ada),
+                 garis tebal bawah. Logo di-embed base64 agar pasti ke-render wkhtmltopdf. -->
             <table style="width:100%; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 14px;">
                 <tr>
-                    <td style="width: 18%; vertical-align: top;">
-                        <img src="/students/static/src/img/logo_kodingyuk.png" style="height: 52px;"/>
+                    <td style="width: 17%; vertical-align: middle;">
+                        <img t-att-src="'data:image/png;base64,%s' % doc.get_rapot_logo_base64()" style="max-height: 58px; max-width: 100%;"/>
                     </td>
-                    <td style="width: 64%; text-align: center; vertical-align: middle; font-family: 'Times New Roman', Times, serif; font-weight: bold; font-size: 15px; line-height: 1.5;">
+                    <td style="width: 66%; text-align: center; vertical-align: middle; font-family: 'Times New Roman', 'Liberation Serif', Times, serif; font-weight: bold; font-size: 16px; line-height: 1.5;">
                         <div t-esc="'RAPOT EKSTRAKURIKULER' if doc.rapot_sekolah_nama else 'RAPOT KURSUS'"/>
                         <div t-esc="' '.join(filter(None, [
                             (doc.modul_id.name or '').upper(),
@@ -22,7 +23,9 @@
                         ]))"/>
                         <div t-if="doc.rapot_sekolah_nama" t-esc="doc.rapot_sekolah_nama.upper()"/>
                     </td>
-                    <td style="width: 18%;"/>
+                    <td style="width: 17%; text-align: right; vertical-align: middle;">
+                        <img t-if="doc.rapot_sekolah_logo" t-att-src="image_data_uri(doc.rapot_sekolah_logo)" style="max-height: 58px; max-width: 100%;"/>
+                    </td>
                 </tr>
             </table>
 
@@ -71,13 +74,13 @@
                 </tbody>
             </table>
 
-            <!-- Legend -->
+            <!-- Legend (pakai hyphen biasa, hindari entity yang mojibake di wkhtmltopdf) -->
             <div style="font-weight: bold; margin-bottom: 4px;">Keterangan</div>
-            <div style="font-size: 11.5px; margin-bottom: 16px; line-height: 1.6;">
-                90 &#8211; 100 : Sangat Baik (A)<br/>
-                80 &#8211; 89&#160;&#160; : Baik (B)<br/>
-                70 &#8211; 79&#160;&#160; : Cukup (C)
-            </div>
+            <table style="font-size: 11.5px; margin-bottom: 16px; line-height: 1.6;">
+                <tr><td style="width: 70px;">90 - 100</td><td style="width: 14px;">:</td><td>Sangat Baik (A)</td></tr>
+                <tr><td>80 - 89</td><td>:</td><td>Baik (B)</td></tr>
+                <tr><td>70 - 79</td><td>:</td><td>Cukup (C)</td></tr>
+            </table>
 
             <!-- Tabel 2: rubrik aspek umum + catatan -->
             <t t-set="rubrik_lines" t-value="doc.rubrik_line_ids.sorted(key=lambda l: (l.sequence, l.id))"/>
@@ -129,7 +132,7 @@
                                 <img t-if="doc.rapot_koordinator_signature" t-att-src="image_data_uri(doc.rapot_koordinator_signature)" style="max-height: 65px;"/>
                             </div>
                             <div t-if="doc.rapot_koordinator_name" style="font-weight: bold; text-decoration: underline;" t-esc="doc.rapot_koordinator_name"/>
-                            <div t-else="">&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;</div>
+                            <div t-else="">....................................</div>
                         </t>
                     </td>
                     <td style="width: 50%; vertical-align: top; text-align: center;">
@@ -138,7 +141,7 @@
                             <img t-if="doc.pelatih_id.signature_image" t-att-src="image_data_uri(doc.pelatih_id.signature_image)" style="max-height: 65px;"/>
                         </div>
                         <div t-if="doc.pelatih_id" style="font-weight: bold;" t-esc="doc.pelatih_id.name"/>
-                        <div t-else="">&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;&#8230;</div>
+                        <div t-else="">....................................</div>
                     </td>
                 </tr>
             </table>

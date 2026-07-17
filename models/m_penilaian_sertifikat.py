@@ -6,7 +6,7 @@ from odoo.exceptions import ValidationError
 class SiswaKursusPenilaianSertifikat(models.Model):
     _name = 'siswa.kursus.penilaian.sertifikat'
     _description = 'Penilaian Sertifikat Kursus Siswa'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'rapot.render.mixin']
     _rec_name = 'display_name'
 
     enrollment_id = fields.Many2one(
@@ -96,6 +96,7 @@ class SiswaKursusPenilaianSertifikat(models.Model):
     # blok ttd "Mengetahui, Koordinator Ekskul" (itu milik pihak sekolah).
     rapot_koordinator_name = fields.Char(string='Koordinator Ekskul (Rapot)', compute='_compute_rapot_identity')
     rapot_koordinator_signature = fields.Image(string='Ttd Koordinator Ekskul (Rapot)', compute='_compute_rapot_identity')
+    rapot_sekolah_logo = fields.Image(string='Logo Sekolah (Rapot)', compute='_compute_rapot_identity')
 
     @api.depends('siswa_id.name', 'siswa_id.class_name', 'siswa_id.level_id.name')
     def _compute_rapot_identity(self):
@@ -106,6 +107,7 @@ class SiswaKursusPenilaianSertifikat(models.Model):
             rec.rapot_sekolah_nama = False
             rec.rapot_koordinator_name = False
             rec.rapot_koordinator_signature = False
+            rec.rapot_sekolah_logo = False
 
     @api.depends('average_score', 'rubrik_total', 'rubrik_line_ids.score')
     def _compute_nilai_huruf(self):

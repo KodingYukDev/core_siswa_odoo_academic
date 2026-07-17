@@ -1,6 +1,19 @@
 # -*- coding: utf-8 -*-
+import base64
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+from odoo.tools import file_open
+
+
+class RapotRenderMixin(models.AbstractModel):
+    """Helper bersama untuk render PDF rapot (dipakai kedua model penilaian)."""
+    _name = 'rapot.render.mixin'
+    _description = 'Rapot Render Helper'
+
+    def get_rapot_logo_base64(self):
+        # Logo di-embed base64 karena path statis kadang gagal dirender wkhtmltopdf.
+        with file_open('students/static/src/img/logo_kodingyuk.png', 'rb') as f:
+            return base64.b64encode(f.read()).decode()
 
 
 class RapotRubrikAspek(models.Model):
