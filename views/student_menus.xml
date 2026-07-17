@@ -17,6 +17,13 @@
             sequence="20"/>
 
         <menuitem
+            id="menu_siswa_kursus_penilaian_sertifikat"
+            name="Rapot / Penilaian Sertifikat"
+            parent="menu_student_database_root"
+            action="action_siswa_kursus_penilaian_sertifikat"
+            sequence="30"/>
+
+        <menuitem
             id="menu_student_config"
             name="Konfigurasi"
             parent="menu_student_database_root"
