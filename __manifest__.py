@@ -13,6 +13,7 @@
         'base',
         'mail',     # Untuk chatter (log & histori)
         'contacts', # Karena kita berelasi ke res.partner
+        'hr',       # Karena kita berelasi ke hr.employee (pelatih/pembina rapot)
     ],
     'data': [
         # Security
@@ -24,6 +25,10 @@
 
         # Data
 
+        # Report
+        'report/rapot_paperformat.xml',
+        'report/rapot_templates.xml',
+
         # Views
         'views/m_level_siswa_views.xml',
         'views/m_class_type_views.xml',
@@ -31,6 +36,8 @@
         'views/m_penilaian_sertifikat_views.xml',
         'views/m_exam_siswa_views.xml',
         'views/m_siswa_views.xml',
+        'views/hr_employee_views.xml',
+        'views/res_company_views.xml',
         'views/automation_cron.xml',
 
         # Menus

@@ -9,9 +9,10 @@
             <field name="arch" type="xml">
                 <form string="Penilaian Sertifikat Kursus">
                     <header>
-                        <button name="action_set_done" type="object" string="Selesai Penilaian" 
-                                class="oe_highlight" 
+                        <button name="action_set_done" type="object" string="Selesai Penilaian"
+                                class="oe_highlight"
                                 confirm="Apakah Anda yakin ingin menyelesaikan penilaian ini? Status enrollment siswa akan diperbarui menjadi 'Lulus'."/>
+                        <button name="%(students.action_report_rapot_siswa)d" type="action" string="Cetak Rapot"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
                     </header>
                     <sheet>
@@ -26,13 +27,15 @@
                                 <field name="enrollment_id" readonly="1"/>
                                 <field name="siswa_id" readonly="1"/>
                                 <field name="modul_id" readonly="1"/>
+                                <field name="pelatih_id"/>
                             </group>
                             <group>
                                 <field name="total_score" readonly="1"/>
                                 <field name="average_score" readonly="1"/>
+                                <field name="nilai_huruf" readonly="1"/>
                             </group>
                         </group>
-                        
+
                         <notebook>
                             <page string="Detail Poin Penilaian">
                                 <field name="assessment_line_ids" >
@@ -44,6 +47,9 @@
                                         <field name="score"/>
                                     </tree>
                                 </field>
+                            </page>
+                            <page string="Catatan Untuk Peserta Didik">
+                                <field name="catatan" placeholder="Catatan dan masukan untuk siswa..."/>
                             </page>
                         </notebook>
                     </sheet>

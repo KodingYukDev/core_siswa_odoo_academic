@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
@@ -45,6 +46,42 @@ class SiswaKursusPenilaianSertifikat(models.Model):
     total_score = fields.Float(string='Jumlah Skor', compute='_compute_scores', store=True, digits=(16, 2))
     average_score = fields.Float(string='Rata-rata Skor', compute='_compute_scores', store=True, digits=(16, 2))
     display_name = fields.Char(string='Penilaian', compute='_compute_display_name', store=True)
+
+    catatan = fields.Text(string='Catatan Untuk Peserta Didik')
+    pelatih_id = fields.Many2one('hr.employee', string='Pelatih/Pembina')
+    nilai_huruf = fields.Char(string='Nilai Akhir (Huruf)', compute='_compute_nilai_huruf', store=True)
+    company_id = fields.Many2one('res.company', string='Perusahaan', default=lambda self: self.env.company)
+
+    rapot_nama_siswa = fields.Char(string='Nama (Rapot)', compute='_compute_rapot_identity')
+    rapot_kelas = fields.Char(string='Kelas (Rapot)', compute='_compute_rapot_identity')
+    rapot_level = fields.Char(string='Level (Rapot)', compute='_compute_rapot_identity')
+    rapot_sekolah_nama = fields.Char(string='Sekolah (Rapot)', compute='_compute_rapot_identity')
+
+    @api.depends('siswa_id.name', 'siswa_id.class_name', 'siswa_id.level_id.name')
+    def _compute_rapot_identity(self):
+        for rec in self:
+            rec.rapot_nama_siswa = rec.siswa_id.name
+            rec.rapot_kelas = rec.siswa_id.class_name
+            rec.rapot_level = rec.siswa_id.level_id.name if rec.siswa_id.level_id else False
+            rec.rapot_sekolah_nama = False
+
+    @api.depends('average_score')
+    def _compute_nilai_huruf(self):
+        for rec in self:
+            score = rec.average_score
+            if score >= 90:
+                rec.nilai_huruf = 'Sangat Baik (A)'
+            elif score >= 80:
+                rec.nilai_huruf = 'Baik (B)'
+            elif score >= 70:
+                rec.nilai_huruf = 'Cukup (C)'
+            else:
+                rec.nilai_huruf = 'Perlu Bimbingan (D)'
+
+    def get_rapot_pdf_base64(self):
+        report = self.env.ref('students.action_report_rapot_siswa')
+        pdf_content, _ = report._render_qweb_pdf(report.report_name, self.ids)
+        return base64.b64encode(pdf_content).decode('utf-8')
 
     @api.depends('enrollment_id.display_name')
     def _compute_display_name(self):
