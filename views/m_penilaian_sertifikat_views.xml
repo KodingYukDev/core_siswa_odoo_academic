@@ -38,7 +38,7 @@
 
                         <notebook>
                             <page string="Detail Poin Penilaian">
-                                <field name="assessment_line_ids" >
+                                <field name="assessment_line_ids" readonly="state == 'done'">
                                     <tree editable="bottom">
                                         <field name="sequence" widget="handle"/>
                                         <field name="penilaian_item_id" readonly="1"/>
@@ -49,7 +49,7 @@
                                 </field>
                             </page>
                             <page string="Catatan Untuk Peserta Didik">
-                                <field name="catatan" placeholder="Catatan dan masukan untuk siswa..."/>
+                                <field name="catatan" placeholder="Catatan dan masukan untuk siswa..." readonly="state == 'done'"/>
                             </page>
                         </notebook>
                     </sheet>
