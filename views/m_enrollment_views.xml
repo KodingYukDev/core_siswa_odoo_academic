@@ -26,12 +26,12 @@
                                 class="btn-secondary"
                                 invisible="not access_code_active"
                         />
-                        <button name="action_create_or_view_certificate_assessment" 
-                                type="object" 
+                        <button name="action_create_or_view_certificate_assessment"
+                                type="object"
                                 string="Penilaian Sertifikat"
                                 class="oe_highlight"
-                                invisible="status != 'aktif'"
-                                help="Klik untuk membuat atau melihat penilaian sertifikat."
+                                invisible="status not in ('aktif', 'lulus')"
+                                help="Klik untuk membuat atau melihat penilaian sertifikat (termasuk tombol Cetak Rapot)."
                         />
                         <field name="status" widget="statusbar" statusbar_visible="aktif,lulus,berhenti"/>
                     </header>
