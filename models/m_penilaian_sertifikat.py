@@ -50,12 +50,15 @@ class SiswaKursusPenilaianSertifikat(models.Model):
     catatan = fields.Text(string='Catatan Untuk Peserta Didik')
     pelatih_id = fields.Many2one('hr.employee', string='Pelatih/Pembina')
     nilai_huruf = fields.Char(string='Nilai Akhir (Huruf)', compute='_compute_nilai_huruf', store=True)
-    company_id = fields.Many2one('res.company', string='Perusahaan', default=lambda self: self.env.company)
 
     rapot_nama_siswa = fields.Char(string='Nama (Rapot)', compute='_compute_rapot_identity')
     rapot_kelas = fields.Char(string='Kelas (Rapot)', compute='_compute_rapot_identity')
     rapot_level = fields.Char(string='Level (Rapot)', compute='_compute_rapot_identity')
     rapot_sekolah_nama = fields.Char(string='Sekolah (Rapot)', compute='_compute_rapot_identity')
+    # Siswa privat/reguler/online tidak punya sekolah mitra, jadi tidak ada
+    # blok ttd "Mengetahui, Koordinator Ekskul" (itu milik pihak sekolah).
+    rapot_koordinator_name = fields.Char(string='Koordinator Ekskul (Rapot)', compute='_compute_rapot_identity')
+    rapot_koordinator_signature = fields.Image(string='Ttd Koordinator Ekskul (Rapot)', compute='_compute_rapot_identity')
 
     @api.depends('siswa_id.name', 'siswa_id.class_name', 'siswa_id.level_id.name')
     def _compute_rapot_identity(self):
@@ -64,6 +67,8 @@ class SiswaKursusPenilaianSertifikat(models.Model):
             rec.rapot_kelas = rec.siswa_id.class_name
             rec.rapot_level = rec.siswa_id.level_id.name if rec.siswa_id.level_id else False
             rec.rapot_sekolah_nama = False
+            rec.rapot_koordinator_name = False
+            rec.rapot_koordinator_signature = False
 
     @api.depends('average_score')
     def _compute_nilai_huruf(self):

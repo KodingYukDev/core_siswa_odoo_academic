@@ -37,7 +37,6 @@
         'views/m_exam_siswa_views.xml',
         'views/m_siswa_views.xml',
         'views/hr_employee_views.xml',
-        'views/res_company_views.xml',
         'views/automation_cron.xml',
 
         # Menus
