@@ -50,6 +50,43 @@ class SiswaKursusPenilaianSertifikat(models.Model):
     catatan = fields.Text(string='Catatan Untuk Peserta Didik')
     pelatih_id = fields.Many2one('hr.employee', string='Pelatih/Pembina')
     nilai_huruf = fields.Char(string='Nilai Akhir (Huruf)', compute='_compute_nilai_huruf', store=True)
+    nilai_huruf_letter = fields.Char(string='Huruf', compute='_compute_nilai_huruf', store=True)
+
+    semester = fields.Selection([('1', 'Semester 1'), ('2', 'Semester 2')], string='Semester')
+    tahun_ajaran = fields.Char(string='Tahun Ajaran', help='Contoh: 2025/2026')
+
+    rubrik_line_ids = fields.One2many(
+        'siswa.kursus.penilaian.rubrik.line',
+        'assessment_id',
+        string='Aspek Umum (Rubrik Rapot)',
+    )
+    rubrik_total = fields.Float(string='Total Skor Rubrik', compute='_compute_rubrik_total', store=True, digits=(16, 2))
+
+    @api.depends('rubrik_line_ids.score')
+    def _compute_rubrik_total(self):
+        for rec in self:
+            rec.rubrik_total = sum(rec.rubrik_line_ids.mapped('score'))
+
+    def action_load_rubrik(self):
+        """Isi baris rubrik dari master aspek yang aktif (untuk record lama/kosong)."""
+        aspek_list = self.env['rapot.rubrik.aspek'].search([])
+        for rec in self:
+            existing = rec.rubrik_line_ids.mapped('aspek_id')
+            for aspek in aspek_list:
+                if aspek not in existing:
+                    rec.rubrik_line_ids.create({
+                        'assessment_id': rec.id,
+                        'aspek_id': aspek.id,
+                        'name': aspek.name,
+                        'max_score': aspek.max_score,
+                        'sequence': aspek.sequence,
+                    })
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records.action_load_rubrik()
+        return records
 
     rapot_nama_siswa = fields.Char(string='Nama (Rapot)', compute='_compute_rapot_identity')
     rapot_kelas = fields.Char(string='Kelas (Rapot)', compute='_compute_rapot_identity')
@@ -70,18 +107,23 @@ class SiswaKursusPenilaianSertifikat(models.Model):
             rec.rapot_koordinator_name = False
             rec.rapot_koordinator_signature = False
 
-    @api.depends('average_score')
+    @api.depends('average_score', 'rubrik_total', 'rubrik_line_ids.score')
     def _compute_nilai_huruf(self):
         for rec in self:
-            score = rec.average_score
+            # Nilai akhir dari total rubrik (tabel 2) bila diisi; fallback rata-rata aspek modul.
+            score = rec.rubrik_total if rec.rubrik_line_ids else rec.average_score
             if score >= 90:
                 rec.nilai_huruf = 'Sangat Baik (A)'
+                rec.nilai_huruf_letter = 'A'
             elif score >= 80:
                 rec.nilai_huruf = 'Baik (B)'
+                rec.nilai_huruf_letter = 'B'
             elif score >= 70:
                 rec.nilai_huruf = 'Cukup (C)'
+                rec.nilai_huruf_letter = 'C'
             else:
                 rec.nilai_huruf = 'Perlu Bimbingan (D)'
+                rec.nilai_huruf_letter = 'D'
 
     def get_rapot_pdf_base64(self):
         report = self.env.ref('students.action_report_rapot_siswa')

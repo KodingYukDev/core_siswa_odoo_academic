@@ -24,6 +24,7 @@
         'wizard/exam_start_wizard_views.xml',
 
         # Data
+        'data/rapot_rubrik_data.xml',
 
         # Report
         'report/rapot_paperformat.xml',
@@ -41,6 +42,9 @@
 
         # Menus
         'views/student_menus.xml',
+
+        # Butuh menu_student_config dari student_menus.xml, load setelahnya
+        'views/rapot_rubrik_views.xml',
     ],
     'installable': True,
     'application': True, # Jadikan ini sebagai aplikasi (muncul di menu utama)

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_rapot_rubrik_aspek_tree" model="ir.ui.view">
+        <field name="name">rapot.rubrik.aspek.tree</field>
+        <field name="model">rapot.rubrik.aspek</field>
+        <field name="arch" type="xml">
+            <tree string="Aspek Rubrik Rapot" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="max_score"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_rapot_rubrik_aspek" model="ir.actions.act_window">
+        <field name="name">Aspek Rubrik Rapot</field>
+        <field name="res_model">rapot.rubrik.aspek</field>
+        <field name="view_mode">tree</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Belum ada aspek rubrik.</p>
+            <p>Aspek ini muncul sebagai tabel kedua di rapot (Pemahaman Konsep Dasar, Kemampuan Teknis, dst).</p>
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_rapot_rubrik_aspek"
+        name="Aspek Rubrik Rapot"
+        parent="menu_student_config"
+        action="action_rapot_rubrik_aspek"
+        sequence="3"/>
+</odoo>

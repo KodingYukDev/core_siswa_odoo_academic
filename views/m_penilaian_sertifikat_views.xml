@@ -32,7 +32,10 @@
                             <group>
                                 <field name="total_score" readonly="1"/>
                                 <field name="average_score" readonly="1"/>
+                                <field name="rubrik_total" readonly="1"/>
                                 <field name="nilai_huruf" readonly="1"/>
+                                <field name="semester" readonly="state == 'done'"/>
+                                <field name="tahun_ajaran" placeholder="2025/2026" readonly="state == 'done'"/>
                             </group>
                         </group>
 
@@ -44,6 +47,19 @@
                                         <field name="penilaian_item_id" readonly="1"/>
                                         <field name="name" invisible="1"/>
                                         <field name="description" invisible="1"/>
+                                        <field name="score"/>
+                                    </tree>
+                                </field>
+                            </page>
+                            <page string="Aspek Umum (Rubrik)">
+                                <button name="action_load_rubrik" type="object" string="Muat Aspek dari Master"
+                                        class="btn-secondary mb-2" invisible="state == 'done'"/>
+                                <field name="rubrik_line_ids" readonly="state == 'done'">
+                                    <tree editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="aspek_id" invisible="1"/>
+                                        <field name="name"/>
+                                        <field name="max_score"/>
                                         <field name="score"/>
                                     </tree>
                                 </field>
