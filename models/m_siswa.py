@@ -231,11 +231,11 @@ class StudentProfile(models.Model):
                 # Upload
                 url = upload_file_to_firebase(self.env, file_content, file_name, dest_path, 'image/png')
                 
-                # Update URL dan hapus binary agar DB ringan
+                # Update URL cloud tanpa menghapus binary. Field image_1920 tetap
+                # dipakai sebagai preview utama di Odoo dan fallback aplikasi lain.
                 # Gunakan super().write agar tidak memicu loop rekursif write()
                 super(StudentProfile, rec).write({
                     'profile_image_url': url,
-                    'image_1920': False
                 })
             except Exception as e:
                 # Jika gagal, biarkan tetap di Binary sebagai fallback
