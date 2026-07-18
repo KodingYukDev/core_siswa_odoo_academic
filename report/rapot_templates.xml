@@ -5,34 +5,38 @@
          Dipakai oleh report siswa privat/reguler/online (students) dan
          siswa ekskul/sekolah (database_sekolah). -->
     <template id="rapot_page" name="Halaman Rapot Siswa">
-        <div class="page" style="font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #000;">
+        <div class="page" style="font-family: 'Times New Roman', 'Liberation Serif', Times, serif; font-size: 15px; color: #000; line-height: 1.18;">
+            <t t-set="module_name" t-value="(doc.modul_id.name or '').upper()"/>
+            <t t-set="institution_name" t-value="(doc.rapot_sekolah_nama or 'KODINGYUK ACADEMY').upper()"/>
+            <t t-set="score_needs_scaling" t-value="bool(doc.average_score and doc.average_score &lt;= 10)"/>
+            <t t-set="normalized_average" t-value="doc.average_score * 10 if score_needs_scaling else doc.average_score"/>
 
             <!-- Kop: logo KodingYuk kiri, judul 3 baris tengah, logo sekolah kanan (jika ada),
                  garis tebal bawah. Logo di-embed base64 agar pasti ke-render wkhtmltopdf. -->
-            <table style="width:100%; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 14px;">
+            <table style="width:100%; border-bottom: 4px double #000; padding-bottom: 7px; margin-bottom: 24px;">
                 <tr>
-                    <td style="width: 17%; vertical-align: middle;">
-                        <img t-att-src="'data:image/png;base64,%s' % doc.get_rapot_logo_base64()" style="max-height: 58px; max-width: 100%;"/>
+                    <td style="width: 17%; vertical-align: top;">
+                        <img t-att-src="'data:image/png;base64,%s' % doc.get_rapot_logo_base64()" style="max-height: 64px; max-width: 100%;"/>
                     </td>
-                    <td style="width: 66%; text-align: center; vertical-align: middle; font-family: 'Times New Roman', 'Liberation Serif', Times, serif; font-weight: bold; font-size: 16px; line-height: 1.5;">
-                        <div t-esc="'RAPOT EKSTRAKURIKULER' if doc.rapot_sekolah_nama else 'RAPOT KURSUS'"/>
+                    <td style="width: 66%; text-align: center; vertical-align: middle; font-weight: bold; font-size: 23px; line-height: 1.25;">
+                        <div>RAPOT EKSTRAKURIKULER</div>
                         <div t-esc="' '.join(filter(None, [
-                            (doc.modul_id.name or '').upper(),
+                            module_name,
                             ('SEMESTER %s' % doc.semester) if doc.semester else None,
                             ('TAHUN AJARAN %s' % doc.tahun_ajaran) if doc.tahun_ajaran else None,
                         ]))"/>
-                        <div t-if="doc.rapot_sekolah_nama" t-esc="doc.rapot_sekolah_nama.upper()"/>
+                        <div t-esc="institution_name"/>
                     </td>
-                    <td style="width: 17%; text-align: right; vertical-align: middle;">
-                        <img t-if="doc.rapot_sekolah_logo" t-att-src="image_data_uri(doc.rapot_sekolah_logo)" style="max-height: 58px; max-width: 100%;"/>
+                    <td style="width: 17%; text-align: right; vertical-align: top;">
+                        <img t-if="doc.rapot_sekolah_logo" t-att-src="image_data_uri(doc.rapot_sekolah_logo)" style="max-height: 64px; max-width: 100%;"/>
                     </td>
                 </tr>
             </table>
 
             <!-- Identitas -->
-            <table style="margin-bottom: 4px; font-size: 12px;">
+            <table style="margin-bottom: 5px; font-size: 18px;">
                 <tr>
-                    <td style="width: 90px; padding: 1px 0;">Nama</td>
+                    <td style="width: 110px; padding: 2px 0;">Nama</td>
                     <td style="width: 14px;">:</td>
                     <td style="padding: 1px 0;" t-esc="doc.rapot_nama_siswa or '-'"/>
                 </tr>
@@ -48,69 +52,70 @@
                 </tr>
             </table>
 
-            <div style="font-weight: bold; margin-bottom: 6px;">Kriteria Penilaian :</div>
+            <div style="font-weight: bold; margin-bottom: 7px; font-size: 18px;">Kriteria Penilaian :</div>
 
             <!-- Tabel 1: aspek penilaian modul -->
-            <table style="width:100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
+            <table style="width:100%; border-collapse: collapse; margin-bottom: 7px; font-size: 15px; line-height: 1.16;">
                 <thead>
                     <tr>
-                        <th style="padding: 5px; width: 6%; border: 1px solid #000; text-align: center;">No</th>
-                        <th style="padding: 5px; width: 20%; border: 1px solid #000; text-align: center;">Aspek Penilaian</th>
-                        <th style="padding: 5px; border: 1px solid #000; text-align: center;">Keterangan</th>
-                        <th style="padding: 5px; width: 9%; border: 1px solid #000; text-align: center;">Skor</th>
+                        <th style="padding: 3px 5px; width: 5.5%; border: 1.2px solid #000; text-align: center; font-size: 18px;">No</th>
+                        <th style="padding: 3px 5px; width: 20%; border: 1.2px solid #000; text-align: center; font-size: 18px;">Aspek Penilaian</th>
+                        <th style="padding: 3px 5px; border: 1.2px solid #000; text-align: center; font-size: 18px;">Keterangan</th>
+                        <th style="padding: 3px 5px; width: 8%; border: 1.2px solid #000; text-align: center; font-size: 18px;">Skor</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr t-foreach="doc.assessment_line_ids" t-as="line">
-                        <td style="padding: 4px 5px; text-align: center; border: 1px solid #000; font-weight: bold;" t-esc="line_index + 1"/>
-                        <td style="padding: 4px 5px; border: 1px solid #000; font-weight: bold;" t-esc="line.name"/>
-                        <td style="padding: 4px 5px; border: 1px solid #000;" t-esc="line.description or ''"/>
-                        <td style="padding: 4px 5px; text-align: center; border: 1px solid #000;" t-esc="('%g' % line.score).replace('.', ',')"/>
+                        <t t-set="line_score" t-value="line.score * 10 if score_needs_scaling else line.score"/>
+                        <td style="padding: 4px 5px; text-align: center; border: 1.2px solid #000; font-weight: bold; font-size: 18px;" t-esc="line_index + 1"/>
+                        <td style="padding: 4px 5px; border: 1.2px solid #000; font-weight: bold; font-size: 16px;" t-esc="line.name"/>
+                        <td style="padding: 4px 5px; border: 1.2px solid #000;" t-esc="line.description or ''"/>
+                        <td style="padding: 4px 5px; text-align: center; border: 1.2px solid #000;" t-esc="('%g' % line_score).replace('.', ',')"/>
                     </tr>
                     <tr>
-                        <td colspan="3" style="padding: 5px; border: 1px solid #000; text-align: center; font-weight: bold;">Total Skor</td>
-                        <td style="padding: 5px; border: 1px solid #000; text-align: center; font-weight: bold;" t-esc="('%.1f' % doc.average_score).replace('.', ',')"/>
+                        <td colspan="3" style="padding: 4px 5px; border: 1.2px solid #000; text-align: center; font-weight: bold; font-size: 18px;">Total Skor</td>
+                        <td style="padding: 4px 5px; border: 1.2px solid #000; text-align: center; font-weight: bold;" t-esc="('%g' % normalized_average).replace('.', ',')"/>
                     </tr>
                 </tbody>
             </table>
 
             <!-- Legend (pakai hyphen biasa, hindari entity yang mojibake di wkhtmltopdf) -->
-            <div style="font-weight: bold; margin-bottom: 4px;">Keterangan</div>
-            <table style="font-size: 11.5px; margin-bottom: 16px; line-height: 1.6;">
-                <tr><td style="width: 70px;">90 - 100</td><td style="width: 14px;">:</td><td>Sangat Baik (A)</td></tr>
+            <div style="font-weight: bold; margin-bottom: 2px; font-size: 18px;">Keterangan</div>
+            <table style="font-size: 17px; margin-bottom: 21px; line-height: 1.18;">
+                <tr><td style="width: 90px;">90 - 100</td><td style="width: 14px;">:</td><td>Sangat Baik (A)</td></tr>
                 <tr><td>80 - 89</td><td>:</td><td>Baik (B)</td></tr>
                 <tr><td>70 - 79</td><td>:</td><td>Cukup (C)</td></tr>
             </table>
 
             <!-- Tabel 2: rubrik aspek umum + catatan -->
             <t t-set="rubrik_lines" t-value="doc.rubrik_line_ids.sorted(key=lambda l: (l.sequence, l.id))"/>
-            <table t-if="rubrik_lines" style="width:100%; border-collapse: collapse; margin-bottom: 24px; font-size: 11.5px;">
+            <table t-if="rubrik_lines" style="width:100%; border-collapse: collapse; margin-bottom: 18px; font-size: 17px; line-height: 1.18;">
                 <thead>
                     <tr>
-                        <th style="padding: 5px; width: 6%; border: 1px solid #000; text-align: center;">No</th>
-                        <th style="padding: 5px; width: 32%; border: 1px solid #000; text-align: center;">Aspek Penilaian</th>
-                        <th style="padding: 5px; width: 12%; border: 1px solid #000; text-align: center;">Skor</th>
-                        <th style="padding: 5px; border: 1px solid #000; text-align: center;">Catatan Untuk Peserta Didik</th>
+                        <th style="padding: 5px; width: 6%; border: 1.2px solid #000; text-align: center; font-size: 18px;">No</th>
+                        <th style="padding: 5px; width: 36%; border: 1.2px solid #000; text-align: center; font-size: 18px;">Aspek Penilaian</th>
+                        <th style="padding: 5px; width: 13%; border: 1.2px solid #000; text-align: center; font-size: 18px;">Skor</th>
+                        <th style="padding: 5px; border: 1.2px solid #000; text-align: center; font-size: 18px;">Catatan Untuk Peserta Didik</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr t-foreach="rubrik_lines" t-as="rline">
-                        <td style="padding: 5px; text-align: center; border: 1px solid #000;" t-esc="rline_index + 1"/>
-                        <td style="padding: 5px; border: 1px solid #000;" t-esc="rline.name"/>
-                        <td style="padding: 5px; text-align: center; border: 1px solid #000;" t-esc="('%g' % rline.score).replace('.', ',')"/>
+                        <td style="padding: 5px; text-align: center; border: 1.2px solid #000;" t-esc="rline_index + 1"/>
+                        <td style="padding: 5px 9px; border: 1.2px solid #000;" t-esc="rline.name"/>
+                        <td style="padding: 5px; text-align: center; border: 1.2px solid #000;" t-esc="('%g' % rline.score).replace('.', ',')"/>
                         <td t-if="rline_index == 0" t-att-rowspan="len(rubrik_lines)"
-                            style="padding: 6px 8px; border: 1px solid #000; vertical-align: top;"
+                            style="padding: 9px 10px; border: 1.2px solid #000; vertical-align: top;"
                             t-esc="doc.catatan or ''"/>
                     </tr>
                     <tr>
-                        <td colspan="2" style="padding: 5px; border: 1px solid #000; font-weight: normal;">Total Score</td>
-                        <td style="padding: 5px; text-align: center; border: 1px solid #000;" t-esc="('%g' % doc.rubrik_total).replace('.', ',')"/>
-                        <td style="border: 1px solid #000;"/>
+                        <td colspan="2" style="padding: 5px 9px; border: 1.2px solid #000; font-weight: normal;">Total Score</td>
+                        <td style="padding: 5px; text-align: center; border: 1.2px solid #000;" t-esc="('%g' % doc.rubrik_total).replace('.', ',')"/>
+                        <td style="border: 1.2px solid #000;"/>
                     </tr>
                     <tr>
-                        <td colspan="2" style="padding: 5px; border: 1px solid #000;">Nilai Akhir (Huruf)</td>
-                        <td style="padding: 5px; text-align: center; border: 1px solid #000; font-weight: bold;" t-esc="doc.nilai_huruf_letter or ''"/>
-                        <td style="border: 1px solid #000;"/>
+                        <td colspan="2" style="padding: 5px 9px; border: 1.2px solid #000;">Nilai Akhir (Huruf)</td>
+                        <td style="padding: 5px; text-align: center; border: 1.2px solid #000; font-weight: bold;" t-esc="doc.nilai_huruf_letter or ''"/>
+                        <td style="border: 1.2px solid #000;"/>
                     </tr>
                 </tbody>
             </table>
@@ -121,24 +126,21 @@
                 <p style="border: 1px solid #000; padding: 8px; min-height: 40px; margin: 0;" t-esc="doc.catatan"/>
             </div>
 
-            <!-- Tanda tangan: Koordinator Ekskul (pihak sekolah) kiri, Pelatih/Pembina kanan.
-                 Rapot privat tanpa sekolah: hanya Pelatih/Pembina di kanan. -->
-            <table style="width:100%; margin-top: 18px; font-size: 11.5px;">
+            <!-- Tanda tangan: template dibuat sama untuk sekolah dan siswa privat/reguler/online. -->
+            <table style="width:100%; margin-top: 8px; font-size: 16px; line-height: 1.12;">
                 <tr>
                     <td style="width: 50%; vertical-align: top;">
-                        <t t-if="doc.rapot_sekolah_nama">
-                            <div style="font-weight: bold;">Mengetahui,<br/>Koordinator Ekskul</div>
-                            <div style="height: 70px; vertical-align: bottom;">
-                                <img t-if="doc.rapot_koordinator_signature" t-att-src="image_data_uri(doc.rapot_koordinator_signature)" style="max-height: 65px;"/>
-                            </div>
-                            <div t-if="doc.rapot_koordinator_name" style="font-weight: bold; text-decoration: underline;" t-esc="doc.rapot_koordinator_name"/>
-                            <div t-else="">....................................</div>
-                        </t>
+                        <div style="font-weight: bold;">Mengetahui,<br/>Koordinator Ekskul</div>
+                        <div style="height: 105px; vertical-align: bottom;">
+                            <img t-if="doc.rapot_koordinator_signature" t-att-src="image_data_uri(doc.rapot_koordinator_signature)" style="max-height: 95px;"/>
+                        </div>
+                        <div t-if="doc.rapot_koordinator_name" style="font-weight: bold; text-decoration: underline;" t-esc="doc.rapot_koordinator_name"/>
+                        <div t-else="">....................................</div>
                     </td>
                     <td style="width: 50%; vertical-align: top; text-align: center;">
                         <div style="font-weight: bold;">Pelatih/Pembina</div>
-                        <div style="height: 70px;">
-                            <img t-if="doc.pelatih_id.signature_image" t-att-src="image_data_uri(doc.pelatih_id.signature_image)" style="max-height: 65px;"/>
+                        <div style="height: 105px;">
+                            <img t-if="doc.pelatih_id.signature_image" t-att-src="image_data_uri(doc.pelatih_id.signature_image)" style="max-height: 95px;"/>
                         </div>
                         <div t-if="doc.pelatih_id" style="font-weight: bold;" t-esc="doc.pelatih_id.name"/>
                         <div t-else="">....................................</div>
