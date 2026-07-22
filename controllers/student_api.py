@@ -372,12 +372,28 @@ class StudentExamAPIController(http.Controller):
                 'id': student.id,
                 'name': student.name,
                 'nis': student.nis or '',
+                'email': student.email or '',
                 'class_name': student.class_name or '',
                 'level_name': student.level_id.name if student.level_id else '',
+                'class_type_name': student.class_type_id.name if student.class_type_id else '',
                 'tipe_siswa': student.tipe_siswa,
                 'join_date': str(student.join_date) if student.join_date else '',
                 'status': student.status,
                 'bio': student.bio_singkat or '',
+                'profile_image_url': student.profile_image_url or '',
+                'schedule': {
+                    'day': dict(student._fields['jadwal_hari'].selection).get(student.jadwal_hari, '') if student.jadwal_hari else '',
+                    'time': student.jadwal_jam or 0,
+                },
+            }
+
+            # 1b. School identity is useful to a student, while billing and
+            # staff-only fields remain intentionally private.
+            school = getattr(student, 'sekolah_id', False)
+            school_data = {
+                'name': school.name if school else '',
+                'level_name': school.level_id.name if school and school.level_id else '',
+                'class_type_name': school.class_type_id.name if school and school.class_type_id else '',
             }
 
             # 2. Attendance Data
@@ -415,6 +431,18 @@ class StudentExamAPIController(http.Controller):
 
             # 3. Certification / Performance
             penilaian_rec = request.env['siswa.kursus.penilaian.sertifikat'].sudo().search([('enrollment_id', '=', enrollment.id)], limit=1) if enrollment else request.env['siswa.kursus.penilaian.sertifikat'].sudo()
+            if not penilaian_rec and enrollment:
+                penilaian_rec = request.env['siswa.kursus.penilaian.sertifikat'].sudo().search([
+                    ('siswa_id', '=', student.id),
+                ], order='id desc', limit=1)
+            if not enrollment and participant and request.env.get('sekolah.kursus.penilaian.sertifikat'):
+                penilaian_rec = request.env['sekolah.kursus.penilaian.sertifikat'].sudo().search([
+                    ('participant_id', '=', participant.id),
+                ], limit=1)
+                if not penilaian_rec:
+                    penilaian_rec = request.env['sekolah.kursus.penilaian.sertifikat'].sudo().search([
+                        ('student_profile_id', '=', student.id),
+                    ], order='id desc', limit=1)
             performance = {
                 'total_score': penilaian_rec.total_score if penilaian_rec else 0,
                 'average_score': penilaian_rec.average_score if penilaian_rec else 0,
@@ -428,8 +456,59 @@ class StudentExamAPIController(http.Controller):
                         'score': line.score,
                     })
 
+            # 3b. Learning materials and portfolio are student-facing data.
+            materials = []
+            if modul:
+                for material in modul.materi_ids.filtered(lambda m: m.is_active):
+                    materials.append({
+                        'id': material.id,
+                        'name': material.name,
+                        'description': material.description or '',
+                        'file_name': material.file_name or '',
+                        'file_type': material.file_type or 'other',
+                        'file_size': material.file_size or 0,
+                        'page_count': material.page_count or 0,
+                        'version': material.version or '',
+                        'external_url': modul.link_materi or '',
+                    })
+
+            portfolio = []
+            portfolio_model = request.env.get('student.portfolio.project')
+            projects = portfolio_model.sudo().search([('siswa_id', '=', student.id)], order='create_date desc') if portfolio_model else student.portfolio_project_ids
+            for project in projects:
+                portfolio.append({
+                    'id': project.id,
+                    'name': project.name,
+                    'description': project.description or '',
+                    'category': project.category_name_mapped or project.category or '',
+                    'project_url': project.project_url or '',
+                    'media': [
+                        {'type': media.media_type, 'url': media.file_url or '', 'name': media.file_name or ''}
+                        for media in project.media_ids if media.file_url
+                    ],
+                })
+
+            certificate = {
+                'available': bool(penilaian_rec),
+                'state': penilaian_rec.state if penilaian_rec else 'draft',
+                'letter': getattr(penilaian_rec, 'nilai_huruf_letter', '') if penilaian_rec else '',
+                'label': getattr(penilaian_rec, 'nilai_huruf', '') if penilaian_rec else '',
+                'note': getattr(penilaian_rec, 'catatan', '') if penilaian_rec else '',
+                'semester': getattr(penilaian_rec, 'semester', '') if penilaian_rec else '',
+                'academic_year': getattr(penilaian_rec, 'tahun_ajaran', '') if penilaian_rec else '',
+            }
+
             # 4. Exam List (private enrollment + school participant)
             exams = self._collect_student_exams(enrollment, participant)
+            if not performance['lines']:
+                performance['lines'] = [
+                    {'name': exam['display_name'], 'score': exam['total_score']}
+                    for exam in exams if exam.get('total_score', 0) > 0
+                ]
+                if performance['lines']:
+                    scores = [line['score'] for line in performance['lines']]
+                    performance['total_score'] = sum(scores)
+                    performance['average_score'] = sum(scores) / len(scores)
 
             res = {
                 'success': True,
@@ -437,12 +516,20 @@ class StudentExamAPIController(http.Controller):
                 'attendance_summary': attendance_summary,
                 'attendance_history': attendance_history,
                 'performance': performance,
+                'certificate': certificate,
+                'materials': materials,
+                'portfolio': portfolio,
+                'school': school_data,
                 'exams': exams,
                 'enrollment': {
                     'id': enrollment.id if enrollment else 0,
                     'name': enrollment.name if enrollment else (participant.enrollment_id.name if participant else ''),
                     'modul_name': modul.name if modul else '',
                     'status': enrollment.status if enrollment else 'aktif',
+                    'start_date': str(enrollment.tanggal_mulai) if enrollment and enrollment.tanggal_mulai else '',
+                    'end_date': str(enrollment.tanggal_selesai) if enrollment and enrollment.tanggal_selesai else '',
+                    'required_sessions': enrollment.jumlah_pertemuan_wajib if enrollment else 0,
+                    'attended_sessions': enrollment.jumlah_pertemuan_diikuti if enrollment else attendance_summary['total_hadir'],
                 }
             }
             return res
