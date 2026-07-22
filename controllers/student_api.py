@@ -457,34 +457,40 @@ class StudentExamAPIController(http.Controller):
                     })
 
             # 3b. Learning materials and portfolio are student-facing data.
+            def _safe_field(record, field_name, default=''):
+                return record[field_name] if record and field_name in record._fields else default
+
             materials = []
             if modul:
-                for material in modul.materi_ids.filtered(lambda m: m.is_active):
+                for material in modul.materi_ids:
+                    if 'is_active' in material._fields and not material.is_active:
+                        continue
                     materials.append({
                         'id': material.id,
-                        'name': material.name,
-                        'description': material.description or '',
-                        'file_name': material.file_name or '',
-                        'file_type': material.file_type or 'other',
-                        'file_size': material.file_size or 0,
-                        'page_count': material.page_count or 0,
-                        'version': material.version or '',
-                        'external_url': modul.link_materi or '',
+                        'name': _safe_field(material, 'name'),
+                        'description': _safe_field(material, 'description'),
+                        'file_name': _safe_field(material, 'file_name'),
+                        'file_type': _safe_field(material, 'file_type', 'other') or 'other',
+                        'file_size': _safe_field(material, 'file_size', 0) or 0,
+                        'page_count': _safe_field(material, 'page_count', 0) or 0,
+                        'version': _safe_field(material, 'version'),
+                        'external_url': _safe_field(modul, 'link_materi'),
                     })
 
             portfolio = []
             portfolio_model = request.env.get('student.portfolio.project')
             projects = portfolio_model.sudo().search([('siswa_id', '=', student.id)], order='create_date desc') if portfolio_model else student.portfolio_project_ids
             for project in projects:
+                media_records = project.media_ids if 'media_ids' in project._fields else []
                 portfolio.append({
                     'id': project.id,
-                    'name': project.name,
-                    'description': project.description or '',
-                    'category': project.category_name_mapped or project.category or '',
-                    'project_url': project.project_url or '',
+                    'name': _safe_field(project, 'name'),
+                    'description': _safe_field(project, 'description'),
+                    'category': _safe_field(project, 'category_name_mapped') or _safe_field(project, 'category'),
+                    'project_url': _safe_field(project, 'project_url'),
                     'media': [
-                        {'type': media.media_type, 'url': media.file_url or '', 'name': media.file_name or ''}
-                        for media in project.media_ids if media.file_url
+                        {'type': _safe_field(media, 'media_type'), 'url': _safe_field(media, 'file_url'), 'name': _safe_field(media, 'file_name')}
+                        for media in media_records if _safe_field(media, 'file_url')
                     ],
                 })
 
