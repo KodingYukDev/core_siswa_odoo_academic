@@ -37,6 +37,8 @@
                                 <field name="join_date"/>
                             </group>
                             <group string="Data Akademik">
+                                <field name="active_class_names" readonly="1"/>
+                                <field name="active_program_categories" readonly="1"/>
                                 <field name="level_id" options="{'no_create': True}"/>
                                 <field name="class_type_id" options="{'no_create': True}"/>
                                 <field name="jadwal_hari"/>
@@ -157,6 +159,8 @@
                 <tree string="Profil Siswa">
                     <field name="name"/> <!-- New direct name field -->
                     <field name="class_name"/>
+                    <field name="active_class_names"/>
+                    <field name="active_program_categories"/>
                     <field name="level_id"/>
                     <field name="class_type_id"/>
                     <field name="jadwal_hari"/>
@@ -178,12 +182,16 @@
                     <field name="parent_id" string="Nama Orang Tua"/>
                     <field name="class_type_id"/>
                     <field name="level_id"/>
+                    <field name="active_program_categories" string="Kategori Program Aktif"/>
                     <separator/>
                     <filter name="status_active" string="Siswa Aktif" domain="[('status', '=', 'active')]"/>
-                    <filter name="status_inactive" string="Siswa Tidak Aktif" domain="[('status', '=', 'inactive')]"/>
+                    <filter name="status_graduated" string="Siswa Lulus" domain="[('status', '=', 'graduated')]"/>
+                    <filter name="status_leave" string="Siswa Cuti" domain="[('status', '=', 'leave')]"/>
+                    <filter name="status_inactive" string="Siswa Berhenti / Tidak Aktif" domain="[('status', '=', 'inactive')]"/>
                     <group expand="0" string="Group By">
                         <filter name="group_by_level" string="Level" context="{'group_by': 'level_id'}"/>
                         <filter name="group_by_class_type" string="Jenis Kelas" context="{'group_by': 'class_type_id'}"/>
+                        <filter name="group_by_active_program_category" string="Kategori Program Aktif" context="{'group_by': 'active_program_categories'}"/>
                         <filter name="group_by_status" string="Status" context="{'group_by': 'status'}"/>
                     </group>
                 </search>
@@ -191,7 +199,7 @@
         </record>
 
         <record id="action_m_siswa" model="ir.actions.act_window">
-            <field name="name">Database Siswa</field>
+            <field name="name">Semua Siswa</field>
             <field name="res_model">m.siswa</field>
             <field name="view_mode">tree,form</field>
             <field name="search_view_id" ref="view_m_siswa_search"/>
