@@ -115,10 +115,21 @@ class SiswaKursusExam(models.Model):
             vals['state'] = 'submitted'
             
         self.write(vals)
+        if vals.get('state') == 'done':
+            self._auto_fill_draft_certificate_assessments()
 
     def action_trainer_done(self):
         self.ensure_one()
         self.state = 'done'
+        self._auto_fill_draft_certificate_assessments()
+
+    def _auto_fill_draft_certificate_assessments(self):
+        assessments = self.env['siswa.kursus.penilaian.sertifikat'].search([
+            ('enrollment_id', '=', self.enrollment_id.id),
+            ('state', '=', 'draft'),
+        ])
+        if assessments:
+            assessments.action_auto_fill_scores()
 
     def action_reset_to_draft(self):
         """Reset exam and all its lines to draft state for retry"""

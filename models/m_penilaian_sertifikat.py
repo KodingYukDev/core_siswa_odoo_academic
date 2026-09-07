@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import re
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
@@ -148,12 +149,101 @@ class SiswaKursusPenilaianSertifikat(models.Model):
             rec.total_score = total
             rec.average_score = total / count if count > 0 else 0.0
 
+    def _auto_score_done_exams(self):
+        self.ensure_one()
+        if not self.enrollment_id:
+            return self.env['siswa.kursus.exam']
+
+        exams = self.env['siswa.kursus.exam'].search([
+            ('enrollment_id', '=', self.enrollment_id.id),
+            ('state', '=', 'done'),
+        ], order='attempt_number desc, id desc')
+
+        latest_by_type = {}
+        for exam in exams:
+            if exam.exam_type not in latest_by_type:
+                latest_by_type[exam.exam_type] = exam
+        return self.env['siswa.kursus.exam'].browse([exam.id for exam in latest_by_type.values()])
+
+    def _auto_score_tokens(self, *values):
+        stopwords = {
+            'yang', 'dan', 'atau', 'untuk', 'dengan', 'dalam', 'pada', 'agar',
+            'dapat', 'bisa', 'secara', 'seperti', 'hingga', 'membuat', 'menggunakan',
+            'mengenal', 'fungsi', 'fitur', 'proyek', 'project', 'sendiri', 'lainnya',
+            'gambar', 'tersebut', 'command', 'block', 'menurut', 'kamu', 'jelaskan',
+        }
+        text = ' '.join(str(value or '').lower() for value in values)
+        return {
+            token for token in re.findall(r'[a-z0-9]+', text)
+            if len(token) >= 4 and token not in stopwords
+        }
+
+    def _auto_score_exam_line_score(self, exam, line):
+        if exam.exam_type == 'pilihan_ganda':
+            return 100.0 if line.is_correct else 0.0
+        return line.score
+
+    def _auto_score_line_pool(self, exams):
+        pool = []
+        totals = []
+        for exam in exams:
+            totals.append(exam.total_score)
+            for line in exam.line_ids:
+                tokens = self._auto_score_tokens(
+                    line.category_name, line.question, line.practice, line.description
+                )
+                pool.append((tokens, self._auto_score_exam_line_score(exam, line)))
+        fallback = sum(totals) / len(totals) if totals else False
+        return pool, fallback
+
+    def action_auto_fill_scores(self):
+        """Isi score detail penilaian dari ujian selesai tanpa mapping manual."""
+        updated = 0
+        skipped = 0
+        for rec in self:
+            if rec.state == 'done':
+                skipped += 1
+                continue
+
+            exams = rec._auto_score_done_exams()
+            if not exams:
+                skipped += 1
+                continue
+
+            pool, fallback = rec._auto_score_line_pool(exams)
+            for line in rec.assessment_line_ids:
+                item = line.penilaian_item_id
+                item_tokens = rec._auto_score_tokens(item.name, item.description)
+                matched_scores = [
+                    score for tokens, score in pool
+                    if item_tokens and tokens and item_tokens.intersection(tokens)
+                ]
+                score = (
+                    sum(matched_scores) / len(matched_scores)
+                    if matched_scores
+                    else fallback
+                )
+                if score is not False:
+                    line.score = score
+                    updated += 1
+
+        message = _("Berhasil mengisi otomatis %s baris penilaian.") % updated
+        if skipped:
+            message += _(" %s penilaian dilewati karena sudah selesai atau belum ada ujian selesai.") % skipped
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {'title': _('Nilai Otomatis'), 'message': message, 'type': 'success' if updated else 'warning'},
+        }
+
     def action_set_done(self):
         self.ensure_one()
         if self.state != 'draft':
             raise ValidationError(_("Penilaian sudah diselesaikan atau bukan dalam status draft."))
         if not self.assessment_line_ids:
             raise ValidationError(_("Tidak ada poin penilaian yang diisi."))
+        if all(not line.score for line in self.assessment_line_ids):
+            self.action_auto_fill_scores()
         for line in self.assessment_line_ids:
             if line.score is False:
                 raise ValidationError(_("Mohon isi semua skor penilaian sebelum menyelesaikan."))

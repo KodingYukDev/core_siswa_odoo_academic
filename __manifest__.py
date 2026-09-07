@@ -8,7 +8,7 @@
     'author': "PT Koding Yuk Academy", # Anda bisa ganti dengan nama Anda
     'website': "https://kodingyuk.id", # Ganti jika perlu
     'category': 'Education',
-    'version': '17.0.1.0.3',
+    'version': '17.0.1.1.0',
     'depends': [
         'base',
         'mail',     # Untuk chatter (log & histori)
@@ -25,6 +25,7 @@
 
         # Data
         'data/rapot_rubrik_data.xml',
+        'data/student_lifecycle_reason_data.xml',
 
         # Report
         'report/rapot_paperformat.xml',
@@ -37,6 +38,7 @@
         'views/m_penilaian_sertifikat_views.xml',
         'views/m_exam_siswa_views.xml',
         'views/m_siswa_views.xml',
+        'views/student_lifecycle_views.xml',
         'views/hr_employee_views.xml',
         'views/automation_cron.xml',
 

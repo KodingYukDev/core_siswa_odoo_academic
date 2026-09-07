@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Action dideklarasikan sebelum dipakai tombol inherited view. -->
+    <record id="action_student_intervention" model="ir.actions.act_window"><field name="name">Intervensi Siswa</field><field name="res_model">student.intervention</field><field name="view_mode">tree,form</field><field name="domain">[('enrollment_id','=',active_id)]</field></record>
+    <record id="action_student_reschedule_event" model="ir.actions.act_window"><field name="name">Riwayat Reschedule</field><field name="res_model">student.reschedule.event</field><field name="view_mode">tree,form</field><field name="domain">[('enrollment_id','=',active_id)]</field></record>
+
+    <record id="view_enrollment_lifecycle_form" model="ir.ui.view">
+        <field name="name">siswa.kursus.enrollment.lifecycle.form</field>
+        <field name="model">siswa.kursus.enrollment</field>
+        <field name="inherit_id" ref="students.view_siswa_kursus_enrollment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/div[@name='button_box']" position="inside">
+                <button name="%(action_student_intervention)d" type="action" class="oe_stat_button" icon="fa-life-ring" context="{'default_enrollment_id': id, 'default_trigger_reason': attention_reason}">
+                    <field name="intervention_ids" widget="statinfo" string="Intervensi"/>
+                </button>
+                <button name="%(action_student_reschedule_event)d" type="action" class="oe_stat_button" icon="fa-calendar">
+                    <field name="reschedule_event_ids" widget="statinfo" string="Reschedule"/>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='tanggal_selesai']/ancestor::group[1]" position="after">
+                <group string="Student Health">
+                    <group>
+                        <field name="attention_level" widget="badge" decoration-success="attention_level == 'green'" decoration-warning="attention_level == 'yellow'" decoration-danger="attention_level == 'red'"/>
+                        <field name="attention_score"/>
+                        <field name="attention_reason"/>
+                    </group>
+                    <group>
+                        <field name="expected_end_date"/>
+                        <field name="session_cadence_days"/>
+                        <field name="days_since_last_session"/>
+                    </group>
+                </group>
+                <group string="Berhenti / Tidak Lanjut" invisible="status != 'berhenti'">
+                    <field name="quit_date" required="status == 'berhenti'"/>
+                    <field name="quit_reason_id" required="status == 'berhenti'" options="{'no_create': True}"/>
+                    <field name="quit_reason_note"/>
+                </group>
+                <group string="Perpanjangan dan Program Berikutnya">
+                    <group>
+                        <field name="renewal_status"/>
+                        <field name="renewal_decision_date" required="renewal_status in ('renewed', 'declined')"/>
+                        <field name="renewal_reason_id" options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="next_program_id"/>
+                        <field name="next_program_note"/>
+                    </group>
+                </group>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Intervensi">
+                    <field name="intervention_ids" context="{'default_enrollment_id': id, 'default_trigger_reason': attention_reason}">
+                        <tree decoration-danger="attention_level == 'red'" decoration-warning="attention_level == 'yellow'">
+                            <field name="alert_date"/><field name="attention_level" widget="badge"/><field name="trigger_reason"/><field name="owner_id"/><field name="action_type"/><field name="due_date"/><field name="state"/><field name="outcome"/>
+                        </tree>
+                    </field>
+                </page>
+                <page string="Reschedule">
+                    <field name="reschedule_event_ids" context="{'default_enrollment_id': id}">
+                        <tree><field name="requested_at"/><field name="old_datetime"/><field name="new_datetime"/><field name="initiator"/><field name="reason_id"/><field name="notice_hours"/><field name="state"/></tree>
+                    </field>
+                </page>
+                <page string="Perpindahan Program">
+                    <field name="transition_ids" context="{'default_enrollment_id': id, 'default_from_program_id': modul_id}">
+                        <tree><field name="transition_date"/><field name="from_program_id"/><field name="to_program_id"/><field name="reason_id"/><field name="recommended_by"/><field name="accepted"/></tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_enrollment_lifecycle_tree" model="ir.ui.view">
+        <field name="name">siswa.kursus.enrollment.lifecycle.tree</field>
+        <field name="model">siswa.kursus.enrollment</field>
+        <field name="inherit_id" ref="students.view_siswa_kursus_enrollment_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='status']" position="after"><field name="attention_level" widget="badge"/><field name="attention_reason" optional="show"/><field name="renewal_status" optional="show"/><field name="expected_end_date" optional="hide"/><field name="quit_date" optional="hide"/></xpath>
+        </field>
+    </record>
+
+    <record id="view_enrollment_lifecycle_search" model="ir.ui.view">
+        <field name="name">siswa.kursus.enrollment.lifecycle.search</field>
+        <field name="model">siswa.kursus.enrollment</field>
+        <field name="inherit_id" ref="students.view_siswa_kursus_enrollment_search_flow"/>
+        <field name="arch" type="xml">
+            <xpath expr="//separator" position="after">
+                <filter name="attention_red" string="Prioritas" domain="[('attention_level','=','red')]"/>
+                <filter name="attention_yellow" string="Perlu Perhatian" domain="[('attention_level','=','yellow')]"/>
+                <filter name="renewal_pending" string="Perpanjangan Perlu Ditanya" domain="[('renewal_status','in',('pending','offered'))]"/>
+                <filter name="stop_missing_reason" string="Berhenti Belum Lengkap" domain="[('status','=','berhenti'),'|',('quit_date','=',False),('quit_reason_id','=',False)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_student_intervention_tree" model="ir.ui.view"><field name="name">student.intervention.tree</field><field name="model">student.intervention</field><field name="arch" type="xml"><tree decoration-danger="attention_level == 'red'" decoration-warning="attention_level == 'yellow'"><field name="alert_date"/><field name="student_id"/><field name="enrollment_id"/><field name="attention_level" widget="badge"/><field name="trigger_reason"/><field name="owner_id"/><field name="action_type"/><field name="due_date"/><field name="state"/><field name="outcome"/></tree></field></record>
+    <record id="view_student_intervention_form" model="ir.ui.view"><field name="name">student.intervention.form</field><field name="model">student.intervention</field><field name="arch" type="xml"><form><header><field name="state" widget="statusbar" statusbar_visible="open,done,cancelled"/></header><sheet><group><group><field name="enrollment_id"/><field name="student_id" readonly="1"/><field name="alert_date"/><field name="attention_level" widget="badge"/><field name="trigger_reason"/></group><group><field name="owner_id"/><field name="action_type"/><field name="due_date"/><field name="outcome" required="state == 'done'"/><field name="outcome_date" required="state == 'done'"/></group></group><field name="note"/></sheet><div class="oe_chatter"><field name="message_follower_ids"/><field name="activity_ids"/><field name="message_ids"/></div></form></field></record>
+    <record id="view_student_reschedule_event_tree" model="ir.ui.view"><field name="name">student.reschedule.event.tree</field><field name="model">student.reschedule.event</field><field name="arch" type="xml"><tree><field name="requested_at"/><field name="student_id"/><field name="enrollment_id"/><field name="old_datetime"/><field name="new_datetime"/><field name="initiator"/><field name="reason_id"/><field name="notice_hours"/><field name="state"/></tree></field></record>
+    <record id="view_student_reschedule_event_form" model="ir.ui.view"><field name="name">student.reschedule.event.form</field><field name="model">student.reschedule.event</field><field name="arch" type="xml"><form><sheet><group><group><field name="enrollment_id"/><field name="student_id" readonly="1"/><field name="requested_at"/><field name="initiator"/></group><group><field name="old_datetime"/><field name="new_datetime"/><field name="reason_id" options="{'no_create': True}"/><field name="notice_hours" readonly="1"/><field name="state"/></group></group><field name="note"/></sheet></form></field></record>
+
+    <record id="action_student_attention" model="ir.actions.act_window"><field name="name">Siswa Perlu Perhatian</field><field name="res_model">siswa.kursus.enrollment</field><field name="view_mode">tree,form</field><field name="domain">[('status','=','aktif'),('attention_level','in',('yellow','red'))]</field><field name="context">{'search_default_attention_red': 1}</field></record>
+    <record id="action_student_intervention_all" model="ir.actions.act_window"><field name="name">Intervensi Akademik</field><field name="res_model">student.intervention</field><field name="view_mode">tree,form</field><field name="domain">[]</field></record>
+    <record id="action_student_reschedule_all" model="ir.actions.act_window"><field name="name">Analisis Reschedule</field><field name="res_model">student.reschedule.event</field><field name="view_mode">tree,form,pivot,graph</field><field name="domain">[]</field></record>
+    <record id="action_student_lifecycle_reason" model="ir.actions.act_window"><field name="name">Alasan Siklus Siswa</field><field name="res_model">student.lifecycle.reason</field><field name="view_mode">tree,form</field></record>
+
+    <menuitem id="menu_student_attention" name="1. Siswa Perlu Perhatian" parent="students.menu_student_database_root" action="action_student_attention" sequence="5"/>
+    <menuitem id="menu_student_intervention" name="Intervensi Akademik" parent="students.menu_student_database_root" action="action_student_intervention_all" sequence="25"/>
+    <menuitem id="menu_student_reschedule" name="Analisis Reschedule" parent="students.menu_student_database_root" action="action_student_reschedule_all" sequence="26"/>
+    <menuitem id="menu_student_lifecycle_reason" name="Alasan Siklus Siswa" parent="students.menu_student_config" action="action_student_lifecycle_reason" sequence="10" groups="students.group_student_manager"/>
+
+    <record id="ir_cron_refresh_student_attention" model="ir.cron">
+        <field name="name">Perbarui Student Attention Score</field><field name="model_id" ref="model_siswa_kursus_enrollment"/><field name="state">code</field><field name="code">model._cron_refresh_attention()</field><field name="interval_number">1</field><field name="interval_type">days</field><field name="nextcall" eval="(DateTime.now() + relativedelta(days=1)).replace(hour=2, minute=20, second=0)"/><field name="active">True</field>
+    </record>
+</odoo>

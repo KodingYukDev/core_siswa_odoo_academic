@@ -12,3 +12,11 @@ access_student_portfolio_project,access.student.portfolio.project,model_student_
 access_student_portfolio_project_media,access.student.portfolio.project.media,model_student_portfolio_project_media,base.group_user,1,1,1,1
 access_rapot_rubrik_aspek,access.rapot.rubrik.aspek,model_rapot_rubrik_aspek,base.group_user,1,1,1,1
 access_siswa_kursus_penilaian_rubrik_line,access.siswa.kursus.penilaian.rubrik.line,model_siswa_kursus_penilaian_rubrik_line,base.group_user,1,1,1,1
+access_student_lifecycle_reason_user,Student Lifecycle Reason User,model_student_lifecycle_reason,group_student_trainer,1,0,0,0
+access_student_lifecycle_reason_manager,Student Lifecycle Reason Manager,model_student_lifecycle_reason,group_student_manager,1,1,1,1
+access_student_reschedule_event_user,Student Reschedule Event User,model_student_reschedule_event,group_student_trainer,1,1,1,0
+access_student_reschedule_event_manager,Student Reschedule Event Manager,model_student_reschedule_event,group_student_manager,1,1,1,1
+access_student_intervention_user,Student Intervention User,model_student_intervention,group_student_trainer,1,1,1,0
+access_student_intervention_manager,Student Intervention Manager,model_student_intervention,group_student_manager,1,1,1,1
+access_student_program_transition_user,Student Program Transition User,model_student_program_transition,group_student_trainer,1,1,1,0
+access_student_program_transition_manager,Student Program Transition Manager,model_student_program_transition,group_student_manager,1,1,1,1

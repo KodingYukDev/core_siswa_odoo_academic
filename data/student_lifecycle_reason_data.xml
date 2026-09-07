@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="reason_stop_cost" model="student.lifecycle.reason"><field name="name">Biaya</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_schedule" model="student.lifecycle.reason"><field name="name">Jadwal Tidak Cocok</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_interest" model="student.lifecycle.reason"><field name="name">Minat Berubah</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_academic" model="student.lifecycle.reason"><field name="name">Kendala Akademik</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_trainer" model="student.lifecycle.reason"><field name="name">Ketidakcocokan Trainer</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_target" model="student.lifecycle.reason"><field name="name">Target Sudah Tercapai</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_move" model="student.lifecycle.reason"><field name="name">Pindah Domisili / Sekolah</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_competitor" model="student.lifecycle.reason"><field name="name">Memilih Lembaga Lain</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_unreachable" model="student.lifecycle.reason"><field name="name">Tidak Dapat Dihubungi</field><field name="reason_type">stop</field></record>
+    <record id="reason_stop_other" model="student.lifecycle.reason"><field name="name">Lainnya</field><field name="reason_type">stop</field></record>
+
+    <record id="reason_renew_satisfied" model="student.lifecycle.reason"><field name="name">Puas dengan Perkembangan</field><field name="reason_type">renew</field></record>
+    <record id="reason_renew_next_program" model="student.lifecycle.reason"><field name="name">Melanjutkan Program Berikutnya</field><field name="reason_type">renew</field></record>
+    <record id="reason_renew_decline_cost" model="student.lifecycle.reason"><field name="name">Tidak Lanjut - Biaya</field><field name="reason_type">renew</field></record>
+    <record id="reason_renew_decline_schedule" model="student.lifecycle.reason"><field name="name">Tidak Lanjut - Jadwal</field><field name="reason_type">renew</field></record>
+    <record id="reason_renew_other" model="student.lifecycle.reason"><field name="name">Lainnya</field><field name="reason_type">renew</field></record>
+
+    <record id="reason_reschedule_parent" model="student.lifecycle.reason"><field name="name">Kebutuhan Orang Tua / Siswa</field><field name="reason_type">reschedule</field></record>
+    <record id="reason_reschedule_trainer" model="student.lifecycle.reason"><field name="name">Kendala Trainer</field><field name="reason_type">reschedule</field></record>
+    <record id="reason_reschedule_school" model="student.lifecycle.reason"><field name="name">Kegiatan Sekolah</field><field name="reason_type">reschedule</field></record>
+    <record id="reason_reschedule_sick" model="student.lifecycle.reason"><field name="name">Sakit</field><field name="reason_type">reschedule</field></record>
+    <record id="reason_reschedule_other" model="student.lifecycle.reason"><field name="name">Lainnya</field><field name="reason_type">reschedule</field></record>
+
+    <record id="reason_transition_level" model="student.lifecycle.reason"><field name="name">Naik Level</field><field name="reason_type">transition</field></record>
+    <record id="reason_transition_interest" model="student.lifecycle.reason"><field name="name">Minat Siswa</field><field name="reason_type">transition</field></record>
+    <record id="reason_transition_fit" model="student.lifecycle.reason"><field name="name">Program Lebih Sesuai</field><field name="reason_type">transition</field></record>
+    <record id="reason_transition_other" model="student.lifecycle.reason"><field name="name">Lainnya</field><field name="reason_type">transition</field></record>
+</odoo>

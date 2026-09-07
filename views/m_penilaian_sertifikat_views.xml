@@ -13,6 +13,8 @@
                                 class="oe_highlight"
                                 invisible="state == 'done'"
                                 confirm="Apakah Anda yakin ingin menyelesaikan penilaian ini? Status enrollment siswa akan diperbarui menjadi 'Lulus'."/>
+                        <button name="action_auto_fill_scores" type="object" string="Isi Nilai Otomatis"
+                                class="btn-secondary" invisible="state == 'done'"/>
                         <button name="%(students.action_report_rapot_siswa)d" type="action" string="Cetak Rapot"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
                     </header>

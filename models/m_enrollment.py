@@ -101,7 +101,14 @@ class StudentCourseEnrollment(models.Model):
 
     def action_generate_access_code(self):
         self.ensure_one()
-        code = 'ST-' + uuid.uuid4().hex[:6].upper()
+        code = False
+        for _attempt in range(10):
+            candidate = 'ST-' + uuid.uuid4().hex[:10].upper()
+            if not self.sudo().search_count([('access_code', '=', candidate)]):
+                code = candidate
+                break
+        if not code:
+            raise UserError(_('Gagal membuat kode akses unik. Silakan coba lagi.'))
         self.write({
             'access_code': code,
             'access_code_active': True,
@@ -243,6 +250,8 @@ class StudentCourseEnrollment(models.Model):
                     'sequence': item.sequence,
                     'score': 0.0,
                 })
+
+        new_assessment.action_auto_fill_scores()
         
         action['res_id'] = new_assessment.id
         action['views'] = [(False, 'form')]

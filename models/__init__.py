@@ -10,3 +10,4 @@ from . import m_penilaian_sertifikat
 from . import m_exam_siswa
 from . import m_portfolio
 from . import hr_employee_extension
+from . import student_lifecycle

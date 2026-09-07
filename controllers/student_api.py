@@ -1,14 +1,63 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import hmac
+import threading
+import time
 from datetime import datetime, timedelta
 from odoo import http, fields
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
+_ATTEMPT_WINDOW_SECONDS = 15 * 60
+_ATTEMPT_LIMIT = 8
+_attempt_lock = threading.Lock()
+_attempts = {}
+
+
+def _client_ip():
+    # remote_addr is normalized by Odoo's proxy_mode when deployed behind the
+    # trusted reverse proxy. Do not trust a caller-supplied IP header here.
+    return request.httprequest.remote_addr or 'unknown'
+
+
+def _attempt_key(kind):
+    return '%s:%s' % (kind, _client_ip())
+
+
+def _is_rate_limited(kind):
+    now = time.monotonic()
+    key = _attempt_key(kind)
+    with _attempt_lock:
+        bucket = _attempts.get(key)
+        if not bucket or bucket['reset_at'] <= now:
+            _attempts.pop(key, None)
+            return False
+        return bucket['count'] >= _ATTEMPT_LIMIT
+
+
+def _record_failed_attempt(kind):
+    now = time.monotonic()
+    key = _attempt_key(kind)
+    with _attempt_lock:
+        bucket = _attempts.get(key)
+        if not bucket or bucket['reset_at'] <= now:
+            _attempts[key] = {'count': 1, 'reset_at': now + _ATTEMPT_WINDOW_SECONDS}
+        else:
+            bucket['count'] += 1
+
+
+def _clear_attempts(kind):
+    with _attempt_lock:
+        _attempts.pop(_attempt_key(kind), None)
+
 
 class StudentExamAPIController(http.Controller):
+
+    def _api_key_valid(self, supplied):
+        expected = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
+        return bool(expected and supplied and hmac.compare_digest(str(expected), str(supplied)))
 
     def _validate_access_code(self, access_code):
         """
@@ -19,6 +68,8 @@ class StudentExamAPIController(http.Controller):
         """
         if not access_code:
             return False, False
+        if _is_rate_limited('student-access-code'):
+            return False, False
 
         # New: try student-level access code first (ST- prefix)
         student = request.env['m.siswa'].sudo().search([
@@ -26,6 +77,7 @@ class StudentExamAPIController(http.Controller):
             ('access_code_active', '=', True),
         ], limit=1)
         if student:
+            _clear_attempts('student-access-code')
             # Prefer an active enrollment for live classes. If the student has
             # graduated and the access code is still active, keep the dashboard
             # available as a learning archive from the latest enrollment.
@@ -45,8 +97,10 @@ class StudentExamAPIController(http.Controller):
             ('access_code_active', '=', True),
         ], limit=1)
         if enrollment:
+            _clear_attempts('student-access-code')
             return enrollment.siswa_id, enrollment
 
+        _record_failed_attempt('student-access-code')
         return False, False
 
     # ----------------------------------------------------------------
@@ -170,8 +224,7 @@ class StudentExamAPIController(http.Controller):
             password = kwargs.get('password')
             api_key = kwargs.get('api_key')
 
-            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
-            if api_key and expected_key and api_key != expected_key:
+            if not self._api_key_valid(api_key):
                 return {'success': False, 'error': 'Invalid API Key'}
 
             if not login or not password:
@@ -231,8 +284,7 @@ class StudentExamAPIController(http.Controller):
             password = kwargs.get('password')
             api_key = kwargs.get('api_key')
 
-            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
-            if api_key and expected_key and api_key != expected_key:
+            if not self._api_key_valid(api_key):
                 return {'success': False, 'error': 'Invalid API Key'}
 
             if not name or not email or not password:
@@ -282,15 +334,14 @@ class StudentExamAPIController(http.Controller):
             email = kwargs.get('email')
             api_key = kwargs.get('api_key')
             
-            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
-            if api_key and expected_key and api_key != expected_key:
+            if not self._api_key_valid(api_key):
                 return {'success': False, 'error': 'Invalid API Key'}
 
             if not email:
                 return {'success': False, 'error': 'Email is required'}
 
-            otp = request.env['ky.otp'].sudo().generate_otp(email)
-            return {'success': True, 'otp': otp}
+            request.env['ky.otp'].sudo().generate_otp(email)
+            return {'success': True, 'message': 'Jika email valid, kode verifikasi telah dikirim.'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
@@ -301,8 +352,7 @@ class StudentExamAPIController(http.Controller):
             otp = kwargs.get('otp')
             api_key = kwargs.get('api_key')
 
-            expected_key = request.env['ir.config_parameter'].sudo().get_param('ky_dev.api_key')
-            if api_key and expected_key and api_key != expected_key:
+            if not self._api_key_valid(api_key):
                 return {'success': False, 'error': 'Invalid API Key'}
 
             if not email or not otp:
@@ -659,13 +709,33 @@ class StudentExamAPIController(http.Controller):
             if not exam:
                 return {'success': False, 'error': 'Ujian tidak ditemukan.'}
 
-            if exam.state == 'done':
-                return {'success': False, 'error': 'Ujian sudah selesai, tidak bisa submit lagi.'}
+            # Submission is valid only while the server-side attempt is active.
+            # Recompute the deadline here; a client can skip detail/list calls.
+            if exam.state in ('done', 'submitted'):
+                if getattr(exam, 'completion_status', False) == 'timeout':
+                    return {'success': False, 'error': 'Waktu ujian sudah habis.'}
+                return {
+                    'success': True,
+                    'total_score': exam.total_score,
+                    'already_submitted': True,
+                }
+            if exam.state != 'in_progress':
+                return {'success': False, 'error': 'Ujian tidak sedang berlangsung.'}
+            remaining_seconds = self._exam_remaining_seconds(exam, is_school)
+            if exam.time_limit_minutes and remaining_seconds <= 0:
+                return {'success': False, 'error': 'Waktu ujian sudah habis.'}
+            if not isinstance(answers, list) or len(answers) > 500:
+                return {'success': False, 'error': 'Format jawaban tidak valid.'}
 
             ExamLine = request.env['sekolah.kursus.exam.line' if is_school else 'siswa.kursus.exam.line'].sudo()
             for ans in answers:
-                line_id = ans.get('line_id')
-                line = ExamLine.search([('id', '=', int(line_id)), ('exam_id', '=', exam.id)], limit=1)
+                if not isinstance(ans, dict):
+                    return {'success': False, 'error': 'Format jawaban tidak valid.'}
+                try:
+                    line_id = int(ans.get('line_id'))
+                except (TypeError, ValueError):
+                    return {'success': False, 'error': 'Format jawaban tidak valid.'}
+                line = ExamLine.search([('id', '=', line_id), ('exam_id', '=', exam.id)], limit=1)
                 if not line:
                     continue
                 update_vals = {}
@@ -674,7 +744,7 @@ class StudentExamAPIController(http.Controller):
                     if selection in ('A', 'B', 'C', 'D'):
                         update_vals['student_answer_selection'] = selection
                 elif exam.exam_type == 'essai':
-                    text = ans.get('answer', '')
+                    text = str(ans.get('answer', ''))[:10000]
                     update_vals['student_answer_text'] = text
                 if update_vals:
                     line.write(update_vals)
@@ -689,7 +759,7 @@ class StudentExamAPIController(http.Controller):
 
         except Exception as e:
             _logger.error(f"Exam Submit Error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': 'Gagal mengirim jawaban.'}
 
     @http.route(['/api/v1/student/exam/done', '/api/v1/student/exam/done/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def exam_done(self, **kwargs):
@@ -702,15 +772,24 @@ class StudentExamAPIController(http.Controller):
             exam, is_school = self._find_student_exam(student, enrollment, exam_id)
             if not exam:
                 return {'success': False, 'error': 'Ujian tidak ditemukan.'}
-            if exam.state != 'done':
-                if is_school:
-                    exam.write({'state': 'submitted', 'completion_status': 'done', 'end_time': fields.Datetime.now()})
-                else:
-                    exam.action_done(status='timeout')
+            if exam.state in ('done', 'submitted'):
+                return {
+                    'success': True,
+                    'completion_status': getattr(exam, 'completion_status', False) or 'done',
+                }
+            if exam.state != 'in_progress':
+                return {'success': False, 'error': 'Ujian belum dimulai.'}
+            remaining_seconds = self._exam_remaining_seconds(exam, is_school)
+            if exam.time_limit_minutes and remaining_seconds <= 0:
+                return {'success': True, 'completion_status': 'timeout'}
+            if is_school:
+                exam.write({'state': 'submitted', 'completion_status': 'done', 'end_time': fields.Datetime.now()})
+            else:
+                exam.action_done(status='done')
             return {'success': True}
         except Exception as e:
             _logger.error(f"Exam Done Error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': 'Gagal menyelesaikan ujian.'}
 
     @http.route(['/api/v1/student/time-config', '/api/v1/student/time-config/'], type='json', auth='public', methods=['POST'], csrf=False, cors='*')
     def time_config(self, **kwargs):

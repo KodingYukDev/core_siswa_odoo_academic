@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 import base64
 import time
 from ..lib.firebase_service import upload_file_to_firebase
@@ -165,6 +166,20 @@ class StudentProfile(models.Model):
         store=True
     )
 
+    active_class_names = fields.Char(
+        string='Kelas Aktif',
+        compute='_compute_active_class_names',
+        store=True,
+        help='Daftar kursus/modul dengan status enrollment Aktif. Field ini dapat disertakan saat export data siswa.'
+    )
+
+    active_program_categories = fields.Char(
+        string='Kategori Program Aktif',
+        compute='_compute_active_program_categories',
+        store=True,
+        help='Kategori dari modul pembelajaran yang sedang aktif, misalnya Coding atau Robotik.',
+    )
+
     @api.depends('enrollment_ids.status')
     def _compute_current_enrollment(self):
         for student in self:
@@ -174,11 +189,46 @@ class StudentProfile(models.Model):
             else:
                 student.current_enrollment_id = False
 
+    @api.depends('enrollment_ids.status', 'enrollment_ids.modul_id', 'enrollment_ids.modul_id.name')
+    def _compute_active_class_names(self):
+        for student in self:
+            active_enrollments = student.enrollment_ids.filtered(
+                lambda enrollment: enrollment.status == 'aktif' and enrollment.modul_id
+            )
+            student.active_class_names = ', '.join(active_enrollments.mapped('modul_id.name')) or False
+
+    @api.depends(
+        'enrollment_ids.status',
+        'enrollment_ids.modul_id',
+        'enrollment_ids.modul_id.program_category',
+    )
+    def _compute_active_program_categories(self):
+        labels = dict(
+            self.env['modul.pembelajaran']._fields['program_category'].selection
+        )
+        for student in self:
+            active_enrollments = student.enrollment_ids.filtered(
+                lambda enrollment: enrollment.status == 'aktif' and enrollment.modul_id
+            )
+            categories = []
+            for category in active_enrollments.mapped('modul_id.program_category'):
+                label = labels.get(category)
+                if label and label not in categories:
+                    categories.append(label)
+            student.active_program_categories = ', '.join(categories) or False
+
     def action_generate_access_code(self):
         """Generate a unique access code for the student (ST- prefix)."""
         import uuid
         self.ensure_one()
-        code = 'ST-' + uuid.uuid4().hex[:6].upper()
+        code = False
+        for _attempt in range(10):
+            candidate = 'ST-' + uuid.uuid4().hex[:10].upper()
+            if not self.sudo().search_count([('access_code', '=', candidate)]):
+                code = candidate
+                break
+        if not code:
+            raise UserError(_('Gagal membuat kode akses unik. Silakan coba lagi.'))
         self.write({
             'access_code': code,
             'access_code_active': True,
