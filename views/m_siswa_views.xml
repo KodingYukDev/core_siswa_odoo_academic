@@ -9,12 +9,14 @@
                 <form string="Profil Siswa">
                     <header>
                         <button name="action_generate_access_code"
+                                groups="students.group_student_manager"
                                 type="object"
                                 string="🔑 Generate Kode Akses"
                                 class="oe_highlight"
                                 invisible="access_code_active == True"
                         />
                         <button name="action_deactivate_access_code"
+                                groups="students.group_student_manager"
                                 type="object"
                                 string="Nonaktifkan Kode"
                                 invisible="access_code_active == False"
@@ -125,8 +127,8 @@
                                                         <form>
                                                             <group>
                                                                 <field name="media_type"/>
-                                                                <field name="file_data" filename="file_name" widget="binary" attrs="{'invisible': [('file_url', '!=', False)]}"/>
-                                                                <field name="file_url" widget="url" attrs="{'invisible': [('file_url', '=', False)]}"/>
+                                                                <field name="file_data" filename="file_name" widget="binary" invisible="file_url"/>
+                                                                <field name="file_url" widget="url" invisible="not file_url"/>
                                                                 <field name="file_name" invisible="1"/>
                                                                 <field name="sequence"/>
                                                             </group>
