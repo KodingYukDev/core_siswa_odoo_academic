@@ -102,7 +102,7 @@
     <record id="action_student_reschedule_all" model="ir.actions.act_window"><field name="name">Analisis Reschedule</field><field name="res_model">student.reschedule.event</field><field name="view_mode">tree,form,pivot,graph</field><field name="domain">[]</field></record>
     <record id="action_student_lifecycle_reason" model="ir.actions.act_window"><field name="name">Alasan Siklus Siswa</field><field name="res_model">student.lifecycle.reason</field><field name="view_mode">tree,form</field></record>
 
-    <menuitem id="menu_student_attention" name="1. Siswa Perlu Perhatian" parent="students.menu_student_database_root" action="action_student_attention" sequence="5"/>
+    <menuitem id="menu_student_attention" name="Siswa Perlu Perhatian" parent="students.menu_student_database_root" action="action_student_attention" sequence="5"/>
     <menuitem id="menu_student_intervention" name="Intervensi Akademik" parent="students.menu_student_database_root" action="action_student_intervention_all" sequence="25"/>
     <menuitem id="menu_student_reschedule" name="Analisis Reschedule" parent="students.menu_student_database_root" action="action_student_reschedule_all" sequence="26"/>
     <menuitem id="menu_student_lifecycle_reason" name="Alasan Siklus Siswa" parent="students.menu_student_config" action="action_student_lifecycle_reason" sequence="10" groups="students.group_student_manager"/>
